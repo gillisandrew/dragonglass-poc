@@ -1,0 +1,10 @@
+{
+  "id": "example-plugin",
+  "name": "Example Plugin",
+  "version": "1.0.0",
+  "minAppVersion": "0.15.0",
+  "description": "An example plugin demonstrating the build workflow",
+  "author": "Example Author",
+  "authorUrl": "https://github.com/example/example-plugin",
+  "isDesktopOnly": false
+}

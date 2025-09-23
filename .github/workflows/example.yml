@@ -1,0 +1,69 @@
+name: Example Plugin Build
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build and Attest Plugin
+    uses: ./.github/workflows/build.yml
+    with:
+      plugin-name: 'example-plugin'
+      node-version: '20'
+      build-command: 'npm run build'
+      source-directory: 'dist'
+      package-manager: 'npm'
+    permissions:
+      contents: read
+      packages: write
+      attestations: write
+      id-token: write
+
+  validate:
+    name: Validate Build
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download built artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ needs.build.outputs.artifact-name }}
+      
+      - name: Verify artifact contents
+        run: |
+          echo "🔍 Verifying artifact contents..."
+          tar -tzf "${{ needs.build.outputs.artifact-name }}" | sort
+          
+          # Extract and verify required files
+          tar -xzf "${{ needs.build.outputs.artifact-name }}"
+          
+          if [ ! -f "main.js" ]; then
+            echo "❌ main.js missing from artifact"
+            exit 1
+          fi
+          
+          if [ ! -f "styles.css" ]; then
+            echo "❌ styles.css missing from artifact"
+            exit 1
+          fi
+          
+          if [ ! -f "manifest.json" ]; then
+            echo "❌ manifest.json missing from artifact"
+            exit 1
+          fi
+          
+          echo "✅ All required files present in artifact"
+      
+      - name: Display build information
+        run: |
+          echo "## 🎉 Build Summary" >> $GITHUB_STEP_SUMMARY
+          echo "**Artifact:** \`${{ needs.build.outputs.artifact-name }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**SHA256:** \`${{ needs.build.outputs.artifact-digest }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 🔒 Security Attestations" >> $GITHUB_STEP_SUMMARY
+          echo "- **SBOM ID:** \`${{ needs.build.outputs.sbom-attestation-id }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Provenance ID:** \`${{ needs.build.outputs.provenance-attestation-id }}\`" >> $GITHUB_STEP_SUMMARY

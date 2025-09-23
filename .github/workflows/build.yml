@@ -1,0 +1,158 @@
+name: Build and Attest Plugin
+
+on:
+  workflow_call:
+    inputs:
+      node-version:
+        description: 'Node.js version to use'
+        required: false
+        type: string
+        default: '20'
+      plugin-name:
+        description: 'Name of the plugin (used for tarball naming)'
+        required: true
+        type: string
+      build-command:
+        description: 'Command to run esbuild'
+        required: false
+        type: string
+        default: 'npm run build'
+      source-directory:
+        description: 'Directory containing the built files'
+        required: false
+        type: string
+        default: 'dist'
+      package-manager:
+        description: 'Package manager to use (npm, yarn, pnpm)'
+        required: false
+        type: string
+        default: 'npm'
+    outputs:
+      artifact-name:
+        description: 'Name of the built artifact'
+        value: ${{ jobs.build-and-attest.outputs.artifact-name }}
+      artifact-digest:
+        description: 'SHA256 digest of the artifact'
+        value: ${{ jobs.build-and-attest.outputs.artifact-digest }}
+      sbom-attestation-id:
+        description: 'ID of the SBOM attestation'
+        value: ${{ jobs.build-and-attest.outputs.sbom-attestation-id }}
+      provenance-attestation-id:
+        description: 'ID of the provenance attestation'
+        value: ${{ jobs.build-and-attest.outputs.provenance-attestation-id }}
+
+permissions:
+  contents: read
+  packages: write
+  attestations: write
+  id-token: write
+
+jobs:
+  build-and-attest:
+    runs-on: ubuntu-latest
+    outputs:
+      artifact-name: ${{ steps.package.outputs.artifact-name }}
+      artifact-digest: ${{ steps.package.outputs.artifact-digest }}
+      sbom-attestation-id: ${{ steps.attest-sbom.outputs.bundle-id }}
+      provenance-attestation-id: ${{ steps.attest-provenance.outputs.bundle-id }}
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.node-version }}
+          cache: ${{ inputs.package-manager }}
+
+      - name: Install dependencies
+        run: |
+          case "${{ inputs.package-manager }}" in
+            npm)
+              npm ci
+              ;;
+            yarn)
+              yarn install --frozen-lockfile
+              ;;
+            pnpm)
+              pnpm install --frozen-lockfile
+              ;;
+            *)
+              echo "Unsupported package manager: ${{ inputs.package-manager }}"
+              exit 1
+              ;;
+          esac
+
+      - name: Build plugin with esbuild
+        run: ${{ inputs.build-command }}
+
+      - name: Verify required files exist
+        run: |
+          echo "Checking for required files in ${{ inputs.source-directory }}..."
+          if [ ! -f "${{ inputs.source-directory }}/main.js" ]; then
+            echo "Error: main.js not found in ${{ inputs.source-directory }}"
+            exit 1
+          fi
+          if [ ! -f "${{ inputs.source-directory }}/styles.css" ]; then
+            echo "Error: styles.css not found in ${{ inputs.source-directory }}"
+            exit 1
+          fi
+          if [ ! -f "${{ inputs.source-directory }}/manifest.json" ]; then
+            echo "Error: manifest.json not found in ${{ inputs.source-directory }}"
+            exit 1
+          fi
+          echo "All required files found!"
+
+      - name: Package plugin
+        id: package
+        run: |
+          ARTIFACT_NAME="${{ inputs.plugin-name }}-$(date +%Y%m%d-%H%M%S).tar.gz"
+          echo "Creating tarball: $ARTIFACT_NAME"
+          
+          # Create tarball with the three required files
+          cd "${{ inputs.source-directory }}"
+          tar -czf "../$ARTIFACT_NAME" main.js styles.css manifest.json
+          cd ..
+          
+          # Calculate digest
+          DIGEST=$(sha256sum "$ARTIFACT_NAME" | cut -d' ' -f1)
+          
+          echo "artifact-name=$ARTIFACT_NAME" >> $GITHUB_OUTPUT
+          echo "artifact-digest=$DIGEST" >> $GITHUB_OUTPUT
+          
+          echo "Built artifact: $ARTIFACT_NAME (SHA256: $DIGEST)"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.package.outputs.artifact-name }}
+          path: ${{ steps.package.outputs.artifact-name }}
+          retention-days: 30
+
+      - name: Generate SBOM
+        uses: anchore/sbom-action@v0
+        with:
+          path: ${{ inputs.source-directory }}
+          format: spdx-json
+
+      - name: Attest SBOM
+        id: attest-sbom
+        uses: actions/attest-sbom@v1
+        with:
+          subject-path: ${{ steps.package.outputs.artifact-name }}
+          sbom-path: ${{ inputs.source-directory }}.spdx.json
+
+      - name: Attest build provenance
+        id: attest-provenance
+        uses: actions/attest-build-provenance@v1
+        with:
+          subject-path: ${{ steps.package.outputs.artifact-name }}
+
+      - name: Output attestation information
+        run: |
+          echo "🎯 Build completed successfully!"
+          echo "📦 Artifact: ${{ steps.package.outputs.artifact-name }}"
+          echo "🔒 Digest: ${{ steps.package.outputs.artifact-digest }}"
+          echo "📋 SBOM Attestation: ${{ steps.attest-sbom.outputs.bundle-id }}"
+          echo "🔐 Provenance Attestation: ${{ steps.attest-provenance.outputs.bundle-id }}"

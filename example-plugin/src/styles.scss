@@ -1,0 +1,38 @@
+/* Example Plugin Styles */
+
+.example-plugin-container {
+  padding: 1rem;
+  border-radius: 8px;
+  background: var(--background-secondary);
+}
+
+.example-plugin-title {
+  font-size: 1.2em;
+  font-weight: bold;
+  margin-bottom: 0.5rem;
+  color: var(--text-accent);
+}
+
+.example-plugin-content {
+  color: var(--text-normal);
+  line-height: 1.5;
+}
+
+.example-plugin-button {
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: var(--interactive-accent-hover);
+    transform: translateY(-1px);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+}
