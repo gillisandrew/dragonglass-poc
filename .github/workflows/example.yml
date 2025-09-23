@@ -16,6 +16,7 @@ jobs:
       node-version: '20'
       build-command: 'npm run build'
       source-directory: 'dist'
+      working-directory: 'example-plugin'
       package-manager: 'npm'
     permissions:
       contents: read

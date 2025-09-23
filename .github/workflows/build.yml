@@ -18,10 +18,15 @@ on:
         type: string
         default: 'npm run build'
       source-directory:
-        description: 'Directory containing the built files'
+        description: 'Directory containing the built files (relative to working-directory)'
         required: false
         type: string
         default: 'dist'
+      working-directory:
+        description: 'Working directory containing package.json and build files'
+        required: false
+        type: string
+        default: '.'
       package-manager:
         description: 'Package manager to use (npm, yarn, pnpm)'
         required: false
@@ -65,8 +70,13 @@ jobs:
         with:
           node-version: ${{ inputs.node-version }}
           cache: ${{ inputs.package-manager }}
+          cache-dependency-path: |
+            ${{ inputs.working-directory }}/package-lock.json
+            ${{ inputs.working-directory }}/yarn.lock
+            ${{ inputs.working-directory }}/pnpm-lock.yaml
 
       - name: Install dependencies
+        working-directory: ${{ inputs.working-directory }}
         run: |
           case "${{ inputs.package-manager }}" in
             npm)
@@ -85,21 +95,23 @@ jobs:
           esac
 
       - name: Build plugin with esbuild
+        working-directory: ${{ inputs.working-directory }}
         run: ${{ inputs.build-command }}
 
       - name: Verify required files exist
         run: |
-          echo "Checking for required files in ${{ inputs.source-directory }}..."
-          if [ ! -f "${{ inputs.source-directory }}/main.js" ]; then
-            echo "Error: main.js not found in ${{ inputs.source-directory }}"
+          SOURCE_PATH="${{ inputs.working-directory }}/${{ inputs.source-directory }}"
+          echo "Checking for required files in $SOURCE_PATH..."
+          if [ ! -f "$SOURCE_PATH/main.js" ]; then
+            echo "Error: main.js not found in $SOURCE_PATH"
             exit 1
           fi
-          if [ ! -f "${{ inputs.source-directory }}/styles.css" ]; then
-            echo "Error: styles.css not found in ${{ inputs.source-directory }}"
+          if [ ! -f "$SOURCE_PATH/styles.css" ]; then
+            echo "Error: styles.css not found in $SOURCE_PATH"
             exit 1
           fi
-          if [ ! -f "${{ inputs.source-directory }}/manifest.json" ]; then
-            echo "Error: manifest.json not found in ${{ inputs.source-directory }}"
+          if [ ! -f "$SOURCE_PATH/manifest.json" ]; then
+            echo "Error: manifest.json not found in $SOURCE_PATH"
             exit 1
           fi
           echo "All required files found!"
@@ -111,9 +123,10 @@ jobs:
           echo "Creating tarball: $ARTIFACT_NAME"
           
           # Create tarball with the three required files
-          cd "${{ inputs.source-directory }}"
-          tar -czf "../$ARTIFACT_NAME" main.js styles.css manifest.json
-          cd ..
+          SOURCE_PATH="${{ inputs.working-directory }}/${{ inputs.source-directory }}"
+          cd "$SOURCE_PATH"
+          tar -czf "../../../$ARTIFACT_NAME" main.js styles.css manifest.json
+          cd ../../..
           
           # Calculate digest
           DIGEST=$(sha256sum "$ARTIFACT_NAME" | cut -d' ' -f1)
@@ -133,7 +146,7 @@ jobs:
       - name: Generate SBOM
         uses: anchore/sbom-action@v0
         with:
-          path: ${{ inputs.source-directory }}
+          path: ${{ inputs.working-directory }}
           format: spdx-json
 
       - name: Attest SBOM
@@ -141,7 +154,7 @@ jobs:
         uses: actions/attest-sbom@v1
         with:
           subject-path: ${{ steps.package.outputs.artifact-name }}
-          sbom-path: ${{ inputs.source-directory }}.spdx.json
+          sbom-path: ${{ inputs.working-directory }}.spdx.json
 
       - name: Attest build provenance
         id: attest-provenance

@@ -55,6 +55,7 @@ jobs:
       node-version: '18'
       build-command: 'npm run build:prod'
       source-directory: 'build'
+      working-directory: 'plugins/my-plugin'  # For monorepos or subdirectory projects
       package-manager: 'yarn'
     permissions:
       contents: read
@@ -93,7 +94,8 @@ jobs:
 | `plugin-name` | Name of the plugin (used for tarball naming) | ✅ | - |
 | `node-version` | Node.js version to use | ❌ | `20` |
 | `build-command` | Command to run esbuild | ❌ | `npm run build` |
-| `source-directory` | Directory containing built files | ❌ | `dist` |
+| `source-directory` | Directory containing built files (relative to working-directory) | ❌ | `dist` |
+| `working-directory` | Working directory containing package.json and build files | ❌ | `.` |
 | `package-manager` | Package manager (npm, yarn, pnpm) | ❌ | `npm` |
 
 ## Outputs
