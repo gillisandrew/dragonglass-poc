@@ -159,7 +159,7 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
           ANNOTATION_FILE: ${{ steps.generate-annotation.outputs.annotation-file }}
           PLUGIN_ID: ${{ steps.plugin-metadata.outputs.id }}
-          SUBJECT_NAME: $OCI_REGISTRY/$OCI_REPOSITORY/$PLUGIN_ID
+          SUBJECT_NAME: ghcr.io/${{github.repository}}/${{ steps.plugin-metadata.outputs.id }}
           PLUGIN_VERSION: ${{ steps.plugin-metadata.outputs.version }}
         run: |
 
@@ -179,7 +179,7 @@ jobs:
           fi
           oras tag $SUBJECT_NAME:$ARTIFACT_NAME latest $PLUGIN_VERSION
 
-          echo "subject-name=$OCI_REGISTRY/$OCI_REPOSITORY/$PLUGIN_ID" >> $GITHUB_OUTPUT
+          echo "subject-name=$SUBJECT_NAME" >> $GITHUB_OUTPUT
           echo "subject-digest=$(echo "$PUSH_OUTPUT" | jq -r '.digest')" >> $GITHUB_OUTPUT
 
       - name: Attest SBOM
