@@ -177,7 +177,7 @@ jobs:
             echo "$PUSH_OUTPUT" >&2
             exit 1
           fi
-          oras tag $SUBJECT_NAME:$ARTIFACT_NAME latest $PLUGIN_VERSION
+          oras tag $SUBJECT_NAME:$ARTIFACT_NAME latest v$PLUGIN_VERSION
 
           echo "subject-name=$SUBJECT_NAME" >> $GITHUB_OUTPUT
           echo "subject-digest=$(echo "$PUSH_OUTPUT" | jq -r '.digest')" >> $GITHUB_OUTPUT
