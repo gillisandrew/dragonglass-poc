@@ -87,11 +87,16 @@ jobs:
           SBOM_FILE: "${{ github.workspace }}/${{ steps.artifact-metadata.outputs.name }}.spdx.json"
         run: |
           npm ci
+
           npm sbom \
             --sbom-format spdx \
             --omit dev \
             --sbom-type application \
             --package-lock-only > $SBOM_FILE
+          if [ $? -ne 0 ]; then
+            echo "npm sbom failed" >&2
+            exit 1
+          fi
 
           echo "sbom-file=$SBOM_FILE" >> $GITHUB_OUTPUT
           echo "licenses=$(jq -r '.packages[].licenseDeclared | select(. != null)' $SBOM_FILE | sort -u)" >> $GITHUB_OUTPUT
@@ -138,6 +143,10 @@ jobs:
               "vnd.obsidian.plugin.isDesktopOnly": $isDesktopOnly
             }
           }' > $ANNOTATION_FILE
+          if [ $? -ne 0 ]; then
+            echo "annotation-file creation failed" >&2
+            exit 1
+          fi
           echo "annotation-file=$ANNOTATION_FILE" >> $GITHUB_OUTPUT
       - uses: oras-project/setup-oras@v1
       - id: push-to-ghcr
@@ -160,11 +169,14 @@ jobs:
             ./main.js:application/javascript \
             ./styles.css:text/css \
             --format json`
-          echo "$PUSH_OUTPUT"
+          if [ $? -ne 0 ]; then
+            echo "oras push failed" >&2
+            echo "$PUSH_OUTPUT" >&2
+            exit 1
+          fi
 
           echo "subject-name=$OCI_REGISTRY/$OCI_REPOSITORY/$PLUGIN_ID" >> $GITHUB_OUTPUT
           echo "subject-digest=$(echo "$PUSH_OUTPUT" | jq -r '.digest')" >> $GITHUB_OUTPUT
-
 
       - name: Attest SBOM
         id: attest-sbom
