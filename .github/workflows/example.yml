@@ -11,11 +11,6 @@ jobs:
   build:
     name: Build and Attest Plugin
     uses: ./.github/workflows/build.yml
-    with:
-      plugin-name: 'example-plugin'
-      build-command: 'npm run build'
-      source-directory: 'dist'
-      working-directory: 'example-plugin'
     permissions:
       contents: read
       packages: write
@@ -32,9 +27,6 @@ jobs:
       attestations: read
     steps:
       - uses: oras-project/setup-oras@v1
-      - run:
-      
-     
       - name: Verify provenance attestation
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

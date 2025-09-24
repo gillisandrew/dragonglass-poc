@@ -3,26 +3,7 @@ name: Build and Attest Plugin
 on:
   workflow_call:
     inputs:
-      node-version:
-        description: 'Node.js version to use'
-        required: false
-        type: string
-        default: '20'
-      plugin-name:
-        description: 'Name of the plugin (used for tarball naming)'
-        required: true
-        type: string
-      build-command:
-        description: 'Command to run esbuild'
-        required: false
-        type: string
-        default: 'npm run build'
-      source-directory:
-        description: 'Directory containing the built files (relative to working-directory)'
-        required: false
-        type: string
-        default: 'dist'
-      working-directory:
+      plugin-directory:
         description: 'Working directory containing package.json and build files'
         required: false
         type: string
@@ -51,110 +32,152 @@ jobs:
   build-and-attest:
     runs-on: ubuntu-latest
     outputs:
-      subject-name: ${{ steps.package.outputs.artifact-name }}
-      subject-digest: ${{ steps.package.outputs.artifact-digest }}
+      subject-name: "${{ steps.push-to-ghcr.outputs.subject-name }}:${{ steps.artifact-metadata.outputs.name }}"
+      subject-digest: ${{ steps.push-to-ghcr.outputs.subject-digest }}
       sbom-attestation-url: ${{ steps.attest-sbom.outputs.attestation-url }}
       provenance-attestation-url: ${{ steps.attest-provenance.outputs.attestation-url}}
-    
+    env:
+      VENDOR_MEDIA_TYPE_NAMESPACE: vnd.dragonglass.plugin
+      PLUGIN_DIR: "${{ inputs.plugin-directory }}"
+      SBOM_OUTPUT_FILE: "${{ github.workspace }}/sbom.spdx.json"
+      BUILD_OUTPUT_PATH: "${{ github.workspace }}/${{ inputs.plugin-directory }}/dist"
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v5
+      - name: Resolve plugin metadata
+        id: plugin-metadata
+        run: |
+          # Extract plugin metadata from manifest.json
+          echo "name=$(jq -r '.name' ${{ inputs.plugin-directory }}/manifest.json)" >> $GITHUB_OUTPUT
+          echo "version=$(jq -r '.version' ${{ inputs.plugin-directory }}/manifest.json)" >> $GITHUB_OUTPUT
+          echo "id=$(jq -r '.id' ${{ inputs.plugin-directory }}/manifest.json)" >> $GITHUB_OUTPUT
+          echo "min-app-version=$(jq -r '.minAppVersion' ${{ inputs.plugin-directory }}/manifest.json)" >> $GITHUB_OUTPUT
+          echo "is-desktop-only=$(jq -r '.isDesktopOnly' ${{ inputs.plugin-directory }}/manifest.json)" >> $GITHUB_OUTPUT
+          echo "description=$(jq -r '.description' ${{ inputs.plugin-directory }}/manifest.json)" >> $GITHUB_OUTPUT
+          echo "author=$(jq -r '.author.name' ${{ inputs.plugin-directory }}/manifest.json)" >> $GITHUB_OUTPUT
+          echo "author-url=$(jq -r '.author.url' ${{ inputs.plugin-directory }}/manifest.json)" >> $GITHUB_OUTPUT
 
+      - name: Resolve artifact metadata
+        id: artifact-metadata
+        env:
+          GITHUB_RUN_ID: ${{ github.run_id }}
+          PLUGIN_NAME: ${{ steps.plugin-metadata.outputs.name }}
+        run: |
+          # Construct artifact name
+          echo "name=$PLUGIN_NAME-$GITHUB_RUN_ID" >> $GITHUB_OUTPUT
       - name: Setup Node.js
         uses: actions/setup-node@v5
         with:
           node-version: "20"
           cache: npm
           cache-dependency-path: |
-            ${{ inputs.working-directory }}/package-lock.json
+            ${{ inputs.plugin-directory }}/package-lock.json
 
-      - name: Install dependencies
-        working-directory: ${{ inputs.working-directory }}
-        run: npm ci
+      - name: Install and record dependencies
+        id: install-dependencies
+        working-directory: ${{ inputs.plugin-directory }}
+        env:
+          SBOM_FILE: "${{ github.workspace }}/${{ steps.artifact-metadata.outputs.name }}.spdx.json"
+        run: |
+          npm ci
+          npm sbom \
+            --sbom-format spdx \
+            --omit dev \
+            --sbom-type application \
+            --package-lock-only > $SBOM_FILE
+          echo "sbom-file=$SBOM_FILE" >> $GITHUB_OUTPUT
+          echo "licenses=$(jq -r '.packages[].licenseDeclared | select(. != null)' $SBOM_FILE | sort -u)" >> $GITHUB_OUTPUT
 
       - name: Build plugin with esbuild
-        working-directory: ${{ inputs.working-directory }}
-        run: ${{ inputs.build-command }}
+        working-directory: ${{ inputs.plugin-directory }}
+        env:
+          NODE_ENV: production
+        run: node esbuild.config.mjs
 
-      - name: Generate SBOM
-        id: generate-sbom
-        working-directory: ${{ inputs.working-directory }}
+      - name: Generate annotation file
+        id: generate-annotation
+        working-directory: ${{ inputs.plugin-directory }}
+        env:
+          PLUGIN_NAME: ${{ steps.plugin-metadata.outputs.name }}
+          PLUGIN_VERSION: ${{ steps.plugin-metadata.outputs.version }}
+          PLUGIN_ID: ${{ steps.plugin-metadata.outputs.id }}
+          PLUGIN_MIN_APP_VERSION: ${{ steps.plugin-metadata.outputs.min-app-version }}
+          PLUGIN_IS_DESKTOP_ONLY: ${{ steps.plugin-metadata.outputs.is-desktop-only }}
+          PLUGIN_DESCRIPTION: ${{ steps.plugin-metadata.outputs.description }}
+          PLUGIN_AUTHOR: ${{ steps.plugin-metadata.outputs.author }}
+          PLUGIN_AUTHOR_URL: ${{ steps.plugin-metadata.outputs.author-url }}
+          PLUGIN_LICENSES: ${{ steps.install-dependencies.outputs.licenses }}
+          SOURCE_URL: "https://github.com/${{ github.repository }}/tree/${{ github.ref }}"
+          ANNOTATION_FILE: "${{ github.workspace }}/annotations.json"
         run: |
-          SBOM_OUTPUT_FILE="${{ github.workspace }}/sbom.spdx.json"
-          npm sbom \
-          --sbom-format spdx \
-          --omit dev \
-          --sbom-type application \
-          --package-lock-only > $SBOM_OUTPUT_FILE
-          # TODO: Verify the SBOM was actually generated.
-          echo "sbom-output-file=$SBOM_OUTPUT_FILE" >> $GITHUB_OUTPUT
-
-      - name: Verify required files exist
-        id: verify-files
-        run: |
-          SOURCE_PATH="${{github.workspace}}/${{ inputs.working-directory }}/${{ inputs.source-directory }}"
-          echo "Checking for required files in $SOURCE_PATH..."
-          if [ ! -f "$SOURCE_PATH/main.js" ]; then
-            echo "Error: main.js not found in $SOURCE_PATH"
-            exit 1
-          fi
-          if [ ! -f "$SOURCE_PATH/styles.css" ]; then
-            echo "Error: styles.css not found in $SOURCE_PATH"
-            exit 1
-          fi
-          if [ ! -f "$SOURCE_PATH/manifest.json" ]; then
-            echo "Error: manifest.json not found in $SOURCE_PATH"
-            exit 1
-          fi
-          echo "All required files found!"
-          echo "source-path=$SOURCE_PATH" >> $GITHUB_OUTPUT
-
-      - name: Package plugin
-        id: package
-        run: |
-          ARTIFACT_TAG="${{ inputs.plugin-name }}-$(date +%Y%m%d-%H%M%S)"
-          ARTIFACT_NAME="$ARTIFACT_BASE_NAME.tar.gz"
-          echo "Creating tarball: $ARTIFACT_NAME"
-          
-          # Create tarball with the three required files
-
-          cp -r "${{ steps.verify-files.outputs.source-path }}" /tmp/${{ inputs.plugin-name }}
-          cd /tmp
-          tar -czf "$GITHUB_WORKSPACE/$ARTIFACT_NAME" ${{ inputs.plugin-name }}
-          cd "$GITHUB_WORKSPACE"
-
-          # Calculate digest
-          DIGEST=$(sha256sum "$ARTIFACT_NAME" | cut -d' ' -f1)
-          
-          echo "artifact-name=$ARTIFACT_NAME" >> $GITHUB_OUTPUT
-          echo "artifact-tag=$ARTIFACT_TAG" >> $GITHUB_OUTPUT
-          
-          echo "Built artifact: $ARTIFACT_NAME (SHA256: $DIGEST)"
-
+          jq -nc \
+          --arg name "$PLUGIN_NAME" \
+          --arg version "$PLUGIN_VERSION" \
+          --arg id "$PLUGIN_ID" \
+          --arg minAppVersion "$PLUGIN_MIN_APP_VERSION" \
+          --arg isDesktopOnly "$PLUGIN_IS_DESKTOP_ONLY" \
+          --arg description "$PLUGIN_DESCRIPTION" \
+          --arg author "$PLUGIN_AUTHOR" \
+          --arg authorUrl "$PLUGIN_AUTHOR_URL" \
+          --arg licenses "$PLUGIN_LICENSES" \
+          --arg sourceUrl "$SOURCE_URL" \
+          '
+          {
+            "$manifest": {
+              "org.opencontainers.image.title": .name,
+              "org.opencontainers.image.description": .description,
+              "org.opencontainers.image.version": .version,
+              "org.opencontainers.image.authors": .author,
+              "org.opencontainers.image.url": .authorUrl,
+              "org.opencontainers.image.source": $sourceUrl,
+              "org.opencontainers.image.licenses": $licenses,
+              "${{env.VENDOR_MEDIA_TYPE_NAMESPACE}}.name": .name,
+              "${{env.VENDOR_MEDIA_TYPE_NAMESPACE}}.version": .version,
+              "${{env.VENDOR_MEDIA_TYPE_NAMESPACE}}.id": .id,
+              "${{env.VENDOR_MEDIA_TYPE_NAMESPACE}}.minAppVersion": .minAppVersion,
+              "${{env.VENDOR_MEDIA_TYPE_NAMESPACE}}.isDesktopOnly": .isDesktopOnly
+              "${{env.VENDOR_MEDIA_TYPE_NAMESPACE}}.description": .description,
+              "${{env.VENDOR_MEDIA_TYPE_NAMESPACE}}.author": .author,
+              "${{env.VENDOR_MEDIA_TYPE_NAMESPACE}}.authorUrl": .authorUrl
+            }
+          }' > $ANNOTATION_FILE
+          echo "annotation-file=$ANNOTATION_FILE" >> $GITHUB_OUTPUT
       - uses: oras-project/setup-oras@v1
       - id: push-to-ghcr
+        name: Push artifact to GitHub Container Registry
+        env:
+          OCI_REGISTRY: ghcr.io
+          OCI_REPOSITORY: ${{ github.repository }}
+          ARTIFACT_NAME: ${{ steps.artifact-metadata.outputs.name }}
+          GITHUB_TOKEN: ${{ github.token }}
+          ANNOTATION_FILE: ${{ steps.generate-annotation.outputs.annotation-file }}
         run: |
-          SUBJECT_NAME="ghcr.io/${{ github.repository }}:${{ steps.package.outputs.artifact-tag }}"
+
           echo "Pushing artifact to $SUBJECT_NAME"
           echo "${{ github.token }}" | oras login --username ${{ github.actor }} --password-stdin ghcr.io
-          PUSH_OUTPUT=$(oras push $SUBJECT_NAME \
-            ${{ steps.package.outputs.artifact-name }}:application/vnd.dragonglass.plugin.tar+gzip \
-            --format json)
+          
+          PUSH_OUTPUT=`oras push \
+            --annotation-file $ANNOTATION_FILE $OCI_REGISTRY/$OCI_REPOSITORY:$ARTIFACT_NAME \
+            --artifact-type application/${{env.VENDOR_MEDIA_TYPE_NAMESPACE}} \
+            $BUILD_OUTPUT_PATH/main.js:application/javascript \
+            $BUILD_OUTPUT_PATH/styles.css:text/css \
+            $BUILD_OUTPUT_PATH/manifest.json:application/${{env.VENDOR_MEDIA_TYPE_NAMESPACE}}.plugin-manifest+json \
+            --format json`
           echo "$PUSH_OUTPUT"
 
-          SUBJECT_DIGEST=$(echo "$PUSH_OUTPUT" | jq -r '.digest')
-          echo "subject-name=$SUBJECT_NAME" >> $GITHUB_OUTPUT
-          echo "subject-digest=$SUBJECT_DIGEST" >> $GITHUB_OUTPUT
+          echo "subject-name=$OCI_REGISTRY/$OCI_REPOSITORY:$ARTIFACT_NAME" >> $GITHUB_OUTPUT
+          echo "subject-digest=$(echo "$PUSH_OUTPUT" | jq -r '.digest')" >> $GITHUB_OUTPUT
 
 
       - name: Attest SBOM
         id: attest-sbom
         uses: actions/attest-sbom@v3
         with:
-          sbom-path: ${{ steps.generate-sbom.outputs.sbom-output-file }}
+          sbom-path: ${{ steps.install-dependencies.outputs.sbom-file }}
           push-to-registry: true
           subject-digest: ${{steps.push-to-ghcr.outputs.subject-digest}}
-          subject-name: ghcr.io/${{ github.repository }}
+          subject-name: ${{steps.push-to-ghcr.outputs.subject-name}}
 
       - name: Attest build provenance
         id: attest-provenance
@@ -162,4 +185,4 @@ jobs:
         with:
           push-to-registry: true
           subject-digest: ${{steps.push-to-ghcr.outputs.subject-digest}}
-          subject-name: ghcr.io/${{ github.repository }}
+          subject-name: ${{steps.push-to-ghcr.outputs.subject-name}}

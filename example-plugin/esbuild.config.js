@@ -36,7 +36,7 @@ async function build() {
   });
 
   // Copy manifest
-  fs.copyFileSync('src/manifest.json', 'dist/manifest.json');
+  fs.copyFileSync('manifest.json', 'dist/manifest.json');
   
   console.log('✅ Build completed successfully!');
   console.log('📁 Output files:');
