@@ -71,7 +71,7 @@ jobs:
           PLUGIN_ID: ${{ steps.plugin-metadata.outputs.id }}
         run: |
           # Construct artifact name
-          echo "name=$PLUGIN_ID-$GITHUB_RUN_ID" >> $GITHUB_OUTPUT
+          echo "name=$GITHUB_RUN_ID" >> $GITHUB_OUTPUT
       - name: Setup Node.js
         uses: actions/setup-node@v5
         with:
@@ -159,12 +159,15 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
           ANNOTATION_FILE: ${{ steps.generate-annotation.outputs.annotation-file }}
           PLUGIN_ID: ${{ steps.plugin-metadata.outputs.id }}
+          SUBJECT_NAME: $OCI_REGISTRY/$OCI_REPOSITORY/$PLUGIN_ID
+          PLUGIN_VERSION: ${{ steps.plugin-metadata.outputs.version }}
         run: |
 
           echo "Pushing artifact to $SUBJECT_NAME"
+
           echo "${{ github.token }}" | oras login --username ${{ github.actor }} --password-stdin ghcr.io
           PUSH_OUTPUT=$(oras push \
-            --annotation-file $ANNOTATION_FILE $OCI_REGISTRY/$OCI_REPOSITORY/$PLUGIN_ID:$ARTIFACT_NAME \
+            --annotation-file $ANNOTATION_FILE $SUBJECT_NAME:$ARTIFACT_NAME \
             --artifact-type application/${{env.VENDOR_MEDIA_TYPE_NAMESPACE}} \
             ./main.js:application/javascript \
             ./styles.css:text/css \
@@ -174,6 +177,7 @@ jobs:
             echo "$PUSH_OUTPUT" >&2
             exit 1
           fi
+          oras tag $SUBJECT_NAME:$ARTIFACT_NAME latest $PLUGIN_VERSION
 
           echo "subject-name=$OCI_REGISTRY/$OCI_REPOSITORY/$PLUGIN_ID" >> $GITHUB_OUTPUT
           echo "subject-digest=$(echo "$PUSH_OUTPUT" | jq -r '.digest')" >> $GITHUB_OUTPUT
