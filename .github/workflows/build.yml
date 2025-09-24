@@ -82,7 +82,7 @@ jobs:
           npm sbom \
           --sbom-format spdx \
           --omit dev \
-          --sbom-type app \
+          --sbom-type application \
           --package-lock-only > ${{ inputs.source-directory }}/sbom.spdx.json
 
       - name: Verify required files exist
