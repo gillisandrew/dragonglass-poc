@@ -139,14 +139,14 @@ jobs:
               "org.opencontainers.image.url": $authorUrl,
               "org.opencontainers.image.source": $sourceUrl,
               "org.opencontainers.image.licenses": $licenses,
-              "${{env.VENDOR_MEDIA_TYPE_NAMESPACE}}.name": $name,
-              "${{env.VENDOR_MEDIA_TYPE_NAMESPACE}}.version": $version,
-              "${{env.VENDOR_MEDIA_TYPE_NAMESPACE}}.id": $id,
-              "${{env.VENDOR_MEDIA_TYPE_NAMESPACE}}.minAppVersion": $minAppVersion,
-              "${{env.VENDOR_MEDIA_TYPE_NAMESPACE}}.isDesktopOnly": $isDesktopOnly,
-              "${{env.VENDOR_MEDIA_TYPE_NAMESPACE}}.description": $description,
-              "${{env.VENDOR_MEDIA_TYPE_NAMESPACE}}.author": $author,
-              "${{env.VENDOR_MEDIA_TYPE_NAMESPACE}}.authorUrl": $authorUrl
+              "vnd.obsidian.plugin.id": $id,
+              "vnd.obsidian.plugin.name": $name,
+              "vnd.obsidian.plugin.version": $version,
+              "vnd.obsidian.plugin.minAppVersion": $minAppVersion,
+              "vnd.obsidian.plugin.description": $description,
+              "vnd.obsidian.plugin.author": $author,
+              "vnd.obsidian.plugin.authorUrl": $authorUrl,
+              "vnd.obsidian.plugin.isDesktopOnly": $isDesktopOnly
             }
           }' > $ANNOTATION_FILE
           echo "annotation-file=$ANNOTATION_FILE" >> $GITHUB_OUTPUT
@@ -169,7 +169,6 @@ jobs:
             --artifact-type application/${{env.VENDOR_MEDIA_TYPE_NAMESPACE}} \
             ./main.js:application/javascript \
             ./styles.css:text/css \
-            ./manifest.json:application/${{env.VENDOR_MEDIA_TYPE_NAMESPACE}}-manifest+json \
             --format json`
           echo "$PUSH_OUTPUT"
 
