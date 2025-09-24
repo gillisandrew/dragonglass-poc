@@ -114,8 +114,6 @@ jobs:
           PLUGIN_DESCRIPTION: ${{ steps.plugin-metadata.outputs.description }}
           PLUGIN_AUTHOR: ${{ steps.plugin-metadata.outputs.author }}
           PLUGIN_AUTHOR_URL: ${{ steps.plugin-metadata.outputs.author-url }}
-          PLUGIN_LICENSES: ${{ steps.install-dependencies.outputs.licenses }}
-          SOURCE_URL: "https://github.com/${{ github.repository }}/tree/${{ github.ref }}"
           ANNOTATION_FILE: "${{ github.workspace }}/annotations.json"
         run: |
           jq -nc \
@@ -127,18 +125,9 @@ jobs:
           --arg description "$PLUGIN_DESCRIPTION" \
           --arg author "$PLUGIN_AUTHOR" \
           --arg authorUrl "$PLUGIN_AUTHOR_URL" \
-          --arg licenses "$PLUGIN_LICENSES" \
-          --arg sourceUrl "$SOURCE_URL" \
           '
           {
             "$manifest": {
-              "org.opencontainers.image.title": $name,
-              "org.opencontainers.image.description": $description,
-              "org.opencontainers.image.version": $version,
-              "org.opencontainers.image.authors": $author,
-              "org.opencontainers.image.url": $authorUrl,
-              "org.opencontainers.image.source": $sourceUrl,
-              "org.opencontainers.image.licenses": $licenses,
               "vnd.obsidian.plugin.id": $id,
               "vnd.obsidian.plugin.name": $name,
               "vnd.obsidian.plugin.version": $version,
