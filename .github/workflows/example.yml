@@ -63,8 +63,9 @@ jobs:
           
           echo "✅ All required files present in artifact"
       - name: Verify provenance attestation
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh auth login --with-token < $GITHUB_TOKEN
           gh attestations list --subject "${{ needs.build.outputs.artifact-name }}" --limit 5
       
       - name: Display build information
