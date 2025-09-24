@@ -77,13 +77,17 @@ jobs:
         run: ${{ inputs.build-command }}
 
       - name: Generate SBOM
+        id: generate-sbom
         working-directory: ${{ inputs.working-directory }}
         run: |
+          SBOM_OUTPUT_FILE="${{ inputs.working-directory }}/sbom.spdx.json"
           npm sbom \
           --sbom-format spdx \
           --omit dev \
           --sbom-type application \
-          --package-lock-only > ${{ inputs.source-directory }}/sbom.spdx.json
+          --package-lock-only > $SBOM_OUTPUT_FILE
+          # TODO: Verify the SBOM was actually generated.
+          echo "sbom-output-file=$SBOM_OUTPUT_FILE" >> $GITHUB_OUTPUT
 
       - name: Verify required files exist
         id: verify-files
@@ -137,24 +141,28 @@ jobs:
           path: ${{ steps.package.outputs.artifact-name }}
           retention-days: 30
       - uses: oras-project/setup-oras@v1
-      - run: |
+      - id: push-to-ghcr
+        run: |
           oras login --username ${{ github.actor }} --password ${{ secrets.GITHUB_TOKEN }} ghcr.io
-          oras push ghcr.io/${{ github.repository }}:${{ steps.package.outputs.artifact-base-name }} \
-            ${{ steps.package.outputs.artifact-name }}:application/vnd.dragonglass.plugin.tar+gzip
+          PUSH_OUTPUT=$(oras push ghcr.io/${{ github.repository }}:${{ steps.package.outputs.artifact-base-name }} \
+            ${{ steps.package.outputs.artifact-name }}:application/vnd.dragonglass.plugin.tar+gzip --format json)
+          SUBJECT_DIGEST=$(echo "$PUSH_OUTPUT" | jq -r 'digest')
+          echo "subject-digest=$SUBJECT_DIGEST" >> $GITHUB_OUTPUT
+
 
       - name: Attest SBOM
         id: attest-sbom
         uses: actions/attest-sbom@v3
         with:
-          sbom-path: ${{ steps.verify-files.outputs.source-path }}/sbom.spdx.json
+          sbom-path: ${{ steps.generate-sbom.outputs.sbom-output-file }}
           push-to-registry: true
-          subject-digest: sha256:${{ steps.package.outputs.artifact-digest }}
-          subject-name: ghcr.io/${{ github.repository }}:${{ steps.package.outputs.artifact-base-name  }}
+          subject-digest: ${{steps.push-to-ghcr.outputs.subject-digest}}
+          subject-name: ghcr.io/${{ github.repository }}
 
       - name: Attest build provenance
         id: attest-provenance
         uses: actions/attest-build-provenance@v3
         with:
           push-to-registry: true
-          subject-digest: sha256:${{ steps.package.outputs.artifact-digest }}
-          subject-name: ghcr.io/${{ github.repository }}:${{ steps.package.outputs.artifact-base-name  }}
+          subject-digest: ${{steps.push-to-ghcr.outputs.subject-digest}}
+          subject-name: ghcr.io/${{ github.repository }}
