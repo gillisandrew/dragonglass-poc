@@ -70,14 +70,13 @@ jobs:
             --repo gillisandrew/dragonglass-poc \
             --signer-repo gillisandrew/dragonglass-poc \
             --deny-self-hosted-runners \
-            --predicate-type https://slsa.dev/provenance/v1 \
-            --output json
+            --predicate-type https://slsa.dev/provenance/v1
+            
           gh attestation verify "${{ needs.build.outputs.artifact-name }}" \
             --repo gillisandrew/dragonglass-poc \
             --signer-repo gillisandrew/dragonglass-poc \
             --deny-self-hosted-runners \
-            --predicate-type https://spdx.dev/Document/v2.3 \
-            --output json 
+            --predicate-type https://spdx.dev/Document/v2.3
       
       - name: Display build information
         run: |
