@@ -142,6 +142,7 @@ jobs:
           oras login --username ${{ github.actor }} --password ${{ secrets.GITHUB_TOKEN }} ghcr.io
           PUSH_OUTPUT=$(oras push ghcr.io/${{ github.repository }}:${{ steps.package.outputs.artifact-base-name }} \
             ${{ steps.package.outputs.artifact-name }}:application/vnd.dragonglass.plugin.tar+gzip --format json)
+          echo "$PUSH_OUTPUT"
           SUBJECT_DIGEST=$(echo "$PUSH_OUTPUT" | jq -r 'digest')
           echo "subject-digest=$SUBJECT_DIGEST" >> $GITHUB_OUTPUT
 
