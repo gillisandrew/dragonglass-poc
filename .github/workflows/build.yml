@@ -80,7 +80,7 @@ jobs:
         id: generate-sbom
         working-directory: ${{ inputs.working-directory }}
         run: |
-          SBOM_OUTPUT_FILE="${{ inputs.working-directory }}/sbom.spdx.json"
+          SBOM_OUTPUT_FILE="${{ github.workspace }}/sbom.spdx.json"
           npm sbom \
           --sbom-format spdx \
           --omit dev \
