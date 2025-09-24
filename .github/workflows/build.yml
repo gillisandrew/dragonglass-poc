@@ -61,8 +61,8 @@ jobs:
           echo "min-app-version=$(jq -r '.minAppVersion' ${{ inputs.plugin-directory }}/manifest.json)" >> $GITHUB_OUTPUT
           echo "is-desktop-only=$(jq -r '.isDesktopOnly' ${{ inputs.plugin-directory }}/manifest.json)" >> $GITHUB_OUTPUT
           echo "description=$(jq -r '.description' ${{ inputs.plugin-directory }}/manifest.json)" >> $GITHUB_OUTPUT
-          echo "author=$(jq -r '.author.name' ${{ inputs.plugin-directory }}/manifest.json)" >> $GITHUB_OUTPUT
-          echo "author-url=$(jq -r '.author.url' ${{ inputs.plugin-directory }}/manifest.json)" >> $GITHUB_OUTPUT
+          echo "author=$(jq -r '.author' ${{ inputs.plugin-directory }}/manifest.json)" >> $GITHUB_OUTPUT
+          echo "author-url=$(jq -r '.authorUrl' ${{ inputs.plugin-directory }}/manifest.json)" >> $GITHUB_OUTPUT
 
       - name: Resolve artifact metadata
         id: artifact-metadata
@@ -173,7 +173,7 @@ jobs:
             --format json`
           echo "$PUSH_OUTPUT"
 
-          echo "subject-name=$OCI_REGISTRY/$OCI_REPOSITORY:$ARTIFACT_NAME" >> $GITHUB_OUTPUT
+          echo "subject-name=$OCI_REGISTRY/$OCI_REPOSITORY" >> $GITHUB_OUTPUT
           echo "subject-digest=$(echo "$PUSH_OUTPUT" | jq -r '.digest')" >> $GITHUB_OUTPUT
 
 
