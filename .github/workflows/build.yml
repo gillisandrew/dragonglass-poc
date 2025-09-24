@@ -134,16 +134,27 @@ jobs:
           name: ${{ steps.package.outputs.artifact-name }}
           path: ${{ steps.package.outputs.artifact-name }}
           retention-days: 30
+      - uses: oras-project/setup-oras@v1
+      - run: |
+          oras login --username ${{ github.actor }} --password ${{ secrets.GITHUB_TOKEN }} ghcr.io
+          oras push ghcr.io/${{ github.repository }}/${{ inputs.plugin-name }}:${{ steps.package.outputs.artifact-name }} \
+            --artifact-type application/tar+gzip \
+            --subject "sha256:${{ steps.package.outputs.artifact-digest }}" \
+            ${{ steps.package.outputs.artifact-name }}
 
       - name: Attest SBOM
         id: attest-sbom
         uses: actions/attest-sbom@v3
         with:
-          subject-path: ${{ steps.package.outputs.artifact-name }}
           sbom-path: ${{ steps.verify-files.outputs.source-path }}/sbom.spdx.json
+          push-to-registry: true
+          subject-digest: sha256:${{ steps.package.outputs.artifact-digest }}
+          subject-name: ghcr.io/${{ github.repository }}/${{ inputs.plugin-name }}:${{ steps.package.outputs.artifact-name }}
 
       - name: Attest build provenance
         id: attest-provenance
         uses: actions/attest-build-provenance@v3
         with:
-          subject-path: ${{ steps.package.outputs.artifact-name }}
+          push-to-registry: true
+          subject-digest: sha256:${{ steps.package.outputs.artifact-digest }}
+          subject-name: ghcr.io/${{ github.repository }}/${{ inputs.plugin-name }}:${{ steps.package.outputs.artifact-name }}
