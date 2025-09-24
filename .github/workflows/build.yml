@@ -132,21 +132,21 @@ jobs:
           '
           {
             "$manifest": {
-              "org.opencontainers.image.title": .name,
-              "org.opencontainers.image.description": .description,
-              "org.opencontainers.image.version": .version,
-              "org.opencontainers.image.authors": .author,
-              "org.opencontainers.image.url": .authorUrl,
+              "org.opencontainers.image.title": $name,
+              "org.opencontainers.image.description": $description,
+              "org.opencontainers.image.version": $version,
+              "org.opencontainers.image.authors": $author,
+              "org.opencontainers.image.url": $authorUrl,
               "org.opencontainers.image.source": $sourceUrl,
               "org.opencontainers.image.licenses": $licenses,
-              "${{env.VENDOR_MEDIA_TYPE_NAMESPACE}}.name": .name,
-              "${{env.VENDOR_MEDIA_TYPE_NAMESPACE}}.version": .version,
-              "${{env.VENDOR_MEDIA_TYPE_NAMESPACE}}.id": .id,
-              "${{env.VENDOR_MEDIA_TYPE_NAMESPACE}}.minAppVersion": .minAppVersion,
-              "${{env.VENDOR_MEDIA_TYPE_NAMESPACE}}.isDesktopOnly": .isDesktopOnly
-              "${{env.VENDOR_MEDIA_TYPE_NAMESPACE}}.description": .description,
-              "${{env.VENDOR_MEDIA_TYPE_NAMESPACE}}.author": .author,
-              "${{env.VENDOR_MEDIA_TYPE_NAMESPACE}}.authorUrl": .authorUrl
+              "${{env.VENDOR_MEDIA_TYPE_NAMESPACE}}.name": $name,
+              "${{env.VENDOR_MEDIA_TYPE_NAMESPACE}}.version": $version,
+              "${{env.VENDOR_MEDIA_TYPE_NAMESPACE}}.id": $id,
+              "${{env.VENDOR_MEDIA_TYPE_NAMESPACE}}.minAppVersion": $minAppVersion,
+              "${{env.VENDOR_MEDIA_TYPE_NAMESPACE}}.isDesktopOnly": $isDesktopOnly,
+              "${{env.VENDOR_MEDIA_TYPE_NAMESPACE}}.description": $description,
+              "${{env.VENDOR_MEDIA_TYPE_NAMESPACE}}.author": $author,
+              "${{env.VENDOR_MEDIA_TYPE_NAMESPACE}}.authorUrl": $authorUrl
             }
           }' > $ANNOTATION_FILE
           echo "annotation-file=$ANNOTATION_FILE" >> $GITHUB_OUTPUT
