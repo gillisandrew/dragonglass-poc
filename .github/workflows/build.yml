@@ -8,6 +8,11 @@ on:
         required: false
         type: string
         default: '.'
+      esbuild-config:
+        description: 'Path to esbuild config file'
+        required: false
+        type: string
+        default: 'esbuild.config.mjs'
     outputs:
       subject-name:
         description: 'Name of the built artifact'
@@ -41,6 +46,7 @@ jobs:
       PLUGIN_DIR: "${{ inputs.plugin-directory }}"
       SBOM_OUTPUT_FILE: "${{ github.workspace }}/sbom.spdx.json"
       BUILD_OUTPUT_PATH: "${{ github.workspace }}/${{ inputs.plugin-directory }}/dist"
+      ESBUILD_CONFIG: "${{ inputs.esbuild-config }}"
 
     steps:
       - name: Checkout repository
@@ -94,7 +100,7 @@ jobs:
         working-directory: ${{ inputs.plugin-directory }}
         env:
           NODE_ENV: production
-        run: node esbuild.config.mjs
+        run: node $ESBUILD_CONFIG
 
       - name: Generate annotation file
         id: generate-annotation

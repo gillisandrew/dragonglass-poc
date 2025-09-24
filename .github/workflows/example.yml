@@ -13,6 +13,7 @@ jobs:
     uses: ./.github/workflows/build.yml
     with:
       plugin-directory: 'example-plugin'
+      esbuild-config: 'esbuild.config.js'
     permissions:
       contents: read
       packages: write
