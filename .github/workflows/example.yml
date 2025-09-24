@@ -121,12 +121,3 @@ jobs:
           echo "- Total packages: \`$PACKAGE_COUNT\`" >> $GITHUB_STEP_SUMMARY
           echo "- Relationships: \`$RELATIONSHIP_COUNT\`" >> $GITHUB_STEP_SUMMARY
       
-      - name: Display build information
-        run: |
-          echo "## 🎉 Build Summary" >> $GITHUB_STEP_SUMMARY
-          echo "**Artifact:** \`${{ needs.build.outputs.artifact-name }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "**SHA256:** \`${{ needs.build.outputs.artifact-digest }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### 🔒 Security Attestations" >> $GITHUB_STEP_SUMMARY
-          echo "- **SBOM URL:** ${{ needs.build.outputs.sbom-attestation-url }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Provenance URL:** ${{ needs.build.outputs.provenance-attestation-url }}" >> $GITHUB_STEP_SUMMARY
