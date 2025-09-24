@@ -66,17 +66,73 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh attestation verify "${{ needs.build.outputs.artifact-name }}" \
+          echo "### 🔒 Provenance Attestation Verification" >> $GITHUB_STEP_SUMMARY
+          
+          # Verify SLSA provenance
+          PROVENANCE_RESULT=$(gh attestation verify "${{ needs.build.outputs.artifact-name }}" \
             --repo gillisandrew/dragonglass-poc \
             --signer-workflow gillisandrew/dragonglass-poc/.github/workflows/build.yml \
             --deny-self-hosted-runners \
-            --predicate-type https://slsa.dev/provenance/v1 >> $GITHUB_STEP_SUMMARY
+            --predicate-type https://slsa.dev/provenance/v1 \
+            --format json)
+          
+          # Extract key information from the JSON
+          ARTIFACT_NAME=$(echo "$PROVENANCE_RESULT" | jq -r '.[0].verificationResult.statement.subject[0].name')
+          ARTIFACT_DIGEST=$(echo "$PROVENANCE_RESULT" | jq -r '.[0].verificationResult.statement.subject[0].digest.sha256')
+          BUILD_TRIGGER=$(echo "$PROVENANCE_RESULT" | jq -r '.[0].verificationResult.signature.certificate.githubWorkflowTrigger')
+          RUNNER_ENV=$(echo "$PROVENANCE_RESULT" | jq -r '.[0].verificationResult.signature.certificate.runnerEnvironment')
+          WORKFLOW_REF=$(echo "$PROVENANCE_RESULT" | jq -r '.[0].verificationResult.signature.certificate.githubWorkflowRef')
+          VERIFIED_TIMESTAMP=$(echo "$PROVENANCE_RESULT" | jq -r '.[0].verificationResult.verifiedTimestamps[0].timestamp')
+          
+          echo "**✅ SLSA Provenance Verification Successful**" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Attribute | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| **Artifact** | \`$ARTIFACT_NAME\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **SHA256** | \`${ARTIFACT_DIGEST:0:12}...\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Build Trigger** | \`$BUILD_TRIGGER\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Runner Environment** | \`$RUNNER_ENV\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Workflow Ref** | \`$WORKFLOW_REF\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Verified At** | \`$VERIFIED_TIMESTAMP\` |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
 
-          gh attestation verify "${{ needs.build.outputs.artifact-name }}" \
+          # Verify SBOM attestation
+          SBOM_RESULT=$(gh attestation verify "${{ needs.build.outputs.artifact-name }}" \
             --repo gillisandrew/dragonglass-poc \
             --signer-workflow gillisandrew/dragonglass-poc/.github/workflows/build.yml \
             --deny-self-hosted-runners \
-            --predicate-type https://spdx.dev/Document/v2.3 >> $GITHUB_STEP_SUMMARY
+            --predicate-type https://spdx.dev/Document/v2.3 \
+            --format json)
+          
+          # Extract SBOM information
+          SBOM_DOCUMENT_NAME=$(echo "$SBOM_RESULT" | jq -r '.[0].verificationResult.statement.predicate.name')
+          SBOM_VERSION=$(echo "$SBOM_RESULT" | jq -r '.[0].verificationResult.statement.predicate.spdxVersion')
+          SBOM_CREATED=$(echo "$SBOM_RESULT" | jq -r '.[0].verificationResult.statement.predicate.creationInfo.created')
+          SBOM_CREATOR_TOOL=$(echo "$SBOM_RESULT" | jq -r '.[0].verificationResult.statement.predicate.creationInfo.creators[] | select(startswith("Tool:"))')
+          SBOM_CREATOR_ORG=$(echo "$SBOM_RESULT" | jq -r '.[0].verificationResult.statement.predicate.creationInfo.creators[] | select(startswith("Organization:"))')
+          PACKAGE_COUNT=$(echo "$SBOM_RESULT" | jq -r '.[0].verificationResult.statement.predicate.packages | length')
+          
+          echo "**✅ SBOM Attestation Verification Successful**" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Attribute | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| **SPDX Version** | \`$SBOM_VERSION\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Created** | \`$SBOM_CREATED\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Creator Tool** | \`$SBOM_CREATOR_TOOL\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Creator Org** | \`$SBOM_CREATOR_ORG\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Package Count** | \`$PACKAGE_COUNT\` |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # List all packages/dependencies
+          echo "#### 📦 Dependencies and Components" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Extract and format package information
+          echo "$SBOM_RESULT" | jq -r '.[0].verificationResult.statement.predicate.packages[] | 
+            "- **" + .name + "**" + 
+            (if .versionInfo and .versionInfo != "NOASSERTION" and .versionInfo != "sha256:" + (.checksums[0].checksumValue // "") then " (`" + .versionInfo + "`)" else "" end) +
+            (if .supplier and .supplier != "NOASSERTION" then " - Supplier: " + .supplier else "" end) +
+            (if .licenseConcluded and .licenseConcluded != "NOASSERTION" then " - License: " + .licenseConcluded else "" end)' >> $GITHUB_STEP_SUMMARY
       
       - name: Display build information
         run: |

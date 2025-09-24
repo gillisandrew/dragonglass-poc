@@ -147,7 +147,7 @@ jobs:
       - name: Generate SBOM
         uses: anchore/sbom-action@v0
         with:
-          file: ${{ steps.package.outputs.artifact-name }}
+          file: ${{ steps.verify-files.outputs.source-path }}/main.js
           artifact-name: sbom.spdx.json
           output-file: ${{ github.workspace }}/sbom.spdx.json
           format: spdx-json
