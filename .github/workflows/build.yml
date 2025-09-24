@@ -149,6 +149,7 @@ jobs:
           ARTIFACT_NAME: ${{ steps.artifact-metadata.outputs.name }}
           GITHUB_TOKEN: ${{ github.token }}
           ANNOTATION_FILE: ${{ steps.generate-annotation.outputs.annotation-file }}
+          PLUGIN_ID: ${{ steps.plugin-metadata.outputs.id }}
         run: |
 
           echo "Pushing artifact to $SUBJECT_NAME"
@@ -161,7 +162,7 @@ jobs:
             --format json`
           echo "$PUSH_OUTPUT"
 
-          echo "subject-name=$OCI_REGISTRY/$OCI_REPOSITORY" >> $GITHUB_OUTPUT
+          echo "subject-name=$OCI_REGISTRY/$OCI_REPOSITORY/$PLUGIN_ID" >> $GITHUB_OUTPUT
           echo "subject-digest=$(echo "$PUSH_OUTPUT" | jq -r '.digest')" >> $GITHUB_OUTPUT
 
 
