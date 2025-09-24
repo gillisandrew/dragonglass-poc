@@ -28,6 +28,10 @@ jobs:
     name: Validate Build
     needs: build
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+      attestations: read
     steps:
       - name: Download built artifact
         uses: actions/download-artifact@v4
@@ -58,6 +62,10 @@ jobs:
           fi
           
           echo "✅ All required files present in artifact"
+      - name: Verify provenance attestation
+        run: |
+          gh auth login --with-token < $GITHUB_TOKEN
+          gh attestations list --subject "${{ needs.build.outputs.artifact-name }}" --limit 5
       
       - name: Display build information
         run: |
