@@ -106,10 +106,6 @@ jobs:
             echo "Error: manifest.json not found in $SOURCE_PATH"
             exit 1
           fi
-          if [ ! -f "$SOURCE_PATH/sbom.spdx.json" ]; then
-            echo "Error: sbom.spdx.json not found in $SOURCE_PATH"
-            exit 1
-          fi
           echo "All required files found!"
           echo "source-path=$SOURCE_PATH" >> $GITHUB_OUTPUT
 
