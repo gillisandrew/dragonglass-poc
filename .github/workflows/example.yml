@@ -68,15 +68,15 @@ jobs:
         run: |
           gh attestation verify "${{ needs.build.outputs.artifact-name }}" \
             --repo gillisandrew/dragonglass-poc \
-            --signer-repo gillisandrew/dragonglass-poc \
+            --signer-workflow gillisandrew/dragonglass-poc/.github/workflows/build.yml \
             --deny-self-hosted-runners \
-            --predicate-type https://slsa.dev/provenance/v1
-            
+            --predicate-type https://slsa.dev/provenance/v1 >> $GITHUB_STEP_SUMMARY
+
           gh attestation verify "${{ needs.build.outputs.artifact-name }}" \
             --repo gillisandrew/dragonglass-poc \
-            --signer-repo gillisandrew/dragonglass-poc \
+            --signer-workflow gillisandrew/dragonglass-poc/.github/workflows/build.yml \
             --deny-self-hosted-runners \
-            --predicate-type https://spdx.dev/Document/v2.3
+            --predicate-type https://spdx.dev/Document/v2.3 >> $GITHUB_STEP_SUMMARY
       
       - name: Display build information
         run: |
