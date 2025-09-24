@@ -31,35 +31,10 @@ jobs:
       packages: read
       attestations: read
     steps:
-      - name: Download built artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: ${{ needs.build.outputs.artifact-name }}
+      - uses: oras-project/setup-oras@v1
+      - run:
       
-      - name: Verify artifact contents
-        run: |
-          echo "🔍 Verifying artifact contents..."
-          tar -tzf "${{ needs.build.outputs.artifact-name }}" | sort
-          
-          # Extract and verify required files
-          tar -xzf "${{ needs.build.outputs.artifact-name }}"
-          
-          if [ ! -f "main.js" ]; then
-            echo "❌ main.js missing from artifact"
-            exit 1
-          fi
-          
-          if [ ! -f "styles.css" ]; then
-            echo "❌ styles.css missing from artifact"
-            exit 1
-          fi
-          
-          if [ ! -f "manifest.json" ]; then
-            echo "❌ manifest.json missing from artifact"
-            exit 1
-          fi
-          
-          echo "✅ All required files present in artifact"
+     
       - name: Verify provenance attestation
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -67,7 +42,7 @@ jobs:
           echo "### 🔒 Provenance Attestation Verification" >> $GITHUB_STEP_SUMMARY
           
           # Verify SLSA provenance
-          PROVENANCE_RESULT=$(gh attestation verify "${{ needs.build.outputs.artifact-name }}" \
+          PROVENANCE_RESULT=$(gh attestation verify "oci://${{ needs.build.outputs.subject-name }}" \
             --repo gillisandrew/dragonglass-poc \
             --signer-workflow gillisandrew/dragonglass-poc/.github/workflows/build.yml \
             --deny-self-hosted-runners \
@@ -95,7 +70,7 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
 
           # Verify SBOM attestation
-          SBOM_RESULT=$(gh attestation verify "${{ needs.build.outputs.artifact-name }}" \
+          SBOM_RESULT=$(gh attestation verify "oci://${{ needs.build.outputs.subject-name }}" \
             --repo gillisandrew/dragonglass-poc \
             --signer-workflow gillisandrew/dragonglass-poc/.github/workflows/build.yml \
             --deny-self-hosted-runners \

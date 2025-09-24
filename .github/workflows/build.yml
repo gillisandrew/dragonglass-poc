@@ -28,12 +28,12 @@ on:
         type: string
         default: '.'
     outputs:
-      artifact-name:
+      subject-name:
         description: 'Name of the built artifact'
-        value: ${{ jobs.build-and-attest.outputs.artifact-name }}
-      artifact-digest:
+        value: ${{ jobs.build-and-attest.outputs.subject-name }}
+      subject-digest:
         description: 'SHA256 digest of the artifact'
-        value: ${{ jobs.build-and-attest.outputs.artifact-digest }}
+        value: ${{ jobs.build-and-attest.outputs.subject-digest }}
       sbom-attestation-url:
         description: 'URL of the SBOM attestation'
         value: ${{ jobs.build-and-attest.outputs.sbom-attestation-url }}
@@ -51,8 +51,8 @@ jobs:
   build-and-attest:
     runs-on: ubuntu-latest
     outputs:
-      artifact-name: ${{ steps.package.outputs.artifact-name }}
-      artifact-digest: ${{ steps.package.outputs.artifact-digest }}
+      subject-name: ${{ steps.package.outputs.artifact-name }}
+      subject-digest: ${{ steps.package.outputs.artifact-digest }}
       sbom-attestation-url: ${{ steps.attest-sbom.outputs.attestation-url }}
       provenance-attestation-url: ${{ steps.attest-provenance.outputs.attestation-url}}
     
@@ -112,38 +112,38 @@ jobs:
       - name: Package plugin
         id: package
         run: |
-          ARTIFACT_BASE_NAME="${{ inputs.plugin-name }}-$(date +%Y%m%d-%H%M%S)"
+          ARTIFACT_TAG="${{ inputs.plugin-name }}-$(date +%Y%m%d-%H%M%S)"
           ARTIFACT_NAME="$ARTIFACT_BASE_NAME.tar.gz"
           echo "Creating tarball: $ARTIFACT_NAME"
           
           # Create tarball with the three required files
-          cd "${{ steps.verify-files.outputs.source-path }}"
-          tar -czf "$GITHUB_WORKSPACE/$ARTIFACT_NAME" main.js styles.css manifest.json
+
+          cp -r "${{ steps.verify-files.outputs.source-path }}" /tmp/${{ inputs.plugin-name }}
+          cd /tmp
+          tar -czf "$GITHUB_WORKSPACE/$ARTIFACT_NAME" ${{ inputs.plugin-name }}
           cd "$GITHUB_WORKSPACE"
 
           # Calculate digest
           DIGEST=$(sha256sum "$ARTIFACT_NAME" | cut -d' ' -f1)
           
           echo "artifact-name=$ARTIFACT_NAME" >> $GITHUB_OUTPUT
-          echo "artifact-digest=$DIGEST" >> $GITHUB_OUTPUT
-          echo "artifact-base-name=$ARTIFACT_BASE_NAME" >> $GITHUB_OUTPUT
+          echo "artifact-tag=$ARTIFACT_TAG" >> $GITHUB_OUTPUT
           
           echo "Built artifact: $ARTIFACT_NAME (SHA256: $DIGEST)"
 
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ steps.package.outputs.artifact-name }}
-          path: ${{ steps.package.outputs.artifact-name }}
-          retention-days: 30
       - uses: oras-project/setup-oras@v1
       - id: push-to-ghcr
         run: |
-          oras login --username ${{ github.actor }} --password ${{ secrets.GITHUB_TOKEN }} ghcr.io
-          PUSH_OUTPUT=$(oras push ghcr.io/${{ github.repository }}:${{ steps.package.outputs.artifact-base-name }} \
-            ${{ steps.package.outputs.artifact-name }}:application/vnd.dragonglass.plugin.tar+gzip --format json)
+          SUBJECT_NAME="ghcr.io/${{ github.repository }}:${{ steps.package.outputs.artifact-tag }}"
+          echo "Pushing artifact to $SUBJECT_NAME"
+          echo "${{ github.token }}" | oras login --username ${{ github.actor }} --password-stdin ghcr.io
+          PUSH_OUTPUT=$(oras push $SUBJECT_NAME \
+            ${{ steps.package.outputs.artifact-name }}:application/vnd.dragonglass.plugin.tar+gzip \
+            --format json)
           echo "$PUSH_OUTPUT"
+
           SUBJECT_DIGEST=$(echo "$PUSH_OUTPUT" | jq -r '.digest')
+          echo "subject-name=$SUBJECT_NAME" >> $GITHUB_OUTPUT
           echo "subject-digest=$SUBJECT_DIGEST" >> $GITHUB_OUTPUT
 
 
