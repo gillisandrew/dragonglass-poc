@@ -137,10 +137,8 @@ jobs:
       - uses: oras-project/setup-oras@v1
       - run: |
           oras login --username ${{ github.actor }} --password ${{ secrets.GITHUB_TOKEN }} ghcr.io
-          oras push ghcr.io/${{ github.repository }}/${{ inputs.plugin-name }}:${{ steps.package.outputs.artifact-name }} \
-            --artifact-type application/tar+gzip \
-            --subject "sha256:${{ steps.package.outputs.artifact-digest }}" \
-            ${{ steps.package.outputs.artifact-name }}
+          oras push ghcr.io/${{ github.repository }}:${{ steps.package.outputs.artifact-name }} \
+            ${{ steps.package.outputs.artifact-name }}:application/vnd.dragonglass.plugin.tar+gzip
 
       - name: Attest SBOM
         id: attest-sbom
