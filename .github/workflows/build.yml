@@ -149,6 +149,7 @@ jobs:
         with:
           file: ${{ steps.package.outputs.artifact-name }}
           artifact-name: sbom.spdx.json
+          output-file: ${{ github.workspace }}/sbom.spdx.json
           format: spdx-json
 
       - name: Attest SBOM
@@ -156,7 +157,7 @@ jobs:
         uses: actions/attest-sbom@v1
         with:
           subject-path: ${{ steps.package.outputs.artifact-name }}
-          sbom-path: sbom.spdx.json
+          sbom-path: ${{ github.workspace }}/sbom.spdx.json
 
       - name: Attest build provenance
         id: attest-provenance
