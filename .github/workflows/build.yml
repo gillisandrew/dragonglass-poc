@@ -147,7 +147,8 @@ jobs:
       - name: Generate SBOM
         uses: anchore/sbom-action@v0
         with:
-          file: ${{ steps.verify-files.outputs.source-path }}/main.js
+          file: ${{ steps.package.outputs.artifact-name }}
+          artifact-name: sbom.spdx.json
           format: spdx-json
 
       - name: Attest SBOM
@@ -155,7 +156,7 @@ jobs:
         uses: actions/attest-sbom@v1
         with:
           subject-path: ${{ steps.package.outputs.artifact-name }}
-          sbom-path: ${{ inputs.working-directory }}.spdx.json
+          sbom-path: sbom.spdx.json
 
       - name: Attest build provenance
         id: attest-provenance
