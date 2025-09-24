@@ -99,8 +99,9 @@ jobs:
         run: ${{ inputs.build-command }}
 
       - name: Verify required files exist
+        id: verify-files
         run: |
-          SOURCE_PATH="${{ inputs.working-directory }}/${{ inputs.source-directory }}"
+          SOURCE_PATH="${{github.workspace}}/${{ inputs.working-directory }}/${{ inputs.source-directory }}"
           echo "Checking for required files in $SOURCE_PATH..."
           if [ ! -f "$SOURCE_PATH/main.js" ]; then
             echo "Error: main.js not found in $SOURCE_PATH"
@@ -115,6 +116,7 @@ jobs:
             exit 1
           fi
           echo "All required files found!"
+          echo "source-path=$SOURCE_PATH" >> $GITHUB_OUTPUT
 
       - name: Package plugin
         id: package
@@ -123,11 +125,10 @@ jobs:
           echo "Creating tarball: $ARTIFACT_NAME"
           
           # Create tarball with the three required files
-          SOURCE_PATH="${{ inputs.working-directory }}/${{ inputs.source-directory }}"
-          cd "$SOURCE_PATH"
-          tar -czf "../../../$ARTIFACT_NAME" main.js styles.css manifest.json
-          cd ../../..
-          
+          cd "${{ steps.verify-files.outputs.source-path }}"
+          tar -czf "$GITHUB_WORKSPACE/$ARTIFACT_NAME" main.js styles.css manifest.json
+          cd "$GITHUB_WORKSPACE"
+
           # Calculate digest
           DIGEST=$(sha256sum "$ARTIFACT_NAME" | cut -d' ' -f1)
           
@@ -146,7 +147,7 @@ jobs:
       - name: Generate SBOM
         uses: anchore/sbom-action@v0
         with:
-          path: ${{ inputs.working-directory }}
+          file: ${{ steps.verify-files.outputs.source-path }}/main.js
           format: spdx-json
 
       - name: Attest SBOM
