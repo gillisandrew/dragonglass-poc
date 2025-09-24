@@ -45,7 +45,7 @@ jobs:
       VENDOR_MEDIA_TYPE_NAMESPACE: vnd.dragonglass.plugin
       PLUGIN_DIR: "${{ inputs.plugin-directory }}"
       SBOM_OUTPUT_FILE: "${{ github.workspace }}/sbom.spdx.json"
-      BUILD_OUTPUT_PATH: "${{ github.workspace }}/${{ inputs.plugin-directory }}/dist"
+      BUILD_OUTPUT_DIR: "${{ github.workspace }}/${{ inputs.plugin-directory }}/dist"
       ESBUILD_CONFIG: "${{ inputs.esbuild-config }}"
 
     steps:
@@ -153,6 +153,7 @@ jobs:
       - uses: oras-project/setup-oras@v1
       - id: push-to-ghcr
         name: Push artifact to GitHub Container Registry
+        working-directory: ${{ env.BUILD_OUTPUT_DIR }}
         env:
           OCI_REGISTRY: ghcr.io
           OCI_REPOSITORY: ${{ github.repository }}
@@ -163,13 +164,12 @@ jobs:
 
           echo "Pushing artifact to $SUBJECT_NAME"
           echo "${{ github.token }}" | oras login --username ${{ github.actor }} --password-stdin ghcr.io
-          
           PUSH_OUTPUT=`oras push \
             --annotation-file $ANNOTATION_FILE $OCI_REGISTRY/$OCI_REPOSITORY:$ARTIFACT_NAME \
             --artifact-type application/${{env.VENDOR_MEDIA_TYPE_NAMESPACE}} \
-            $BUILD_OUTPUT_PATH/main.js:application/javascript \
-            $BUILD_OUTPUT_PATH/styles.css:text/css \
-            $BUILD_OUTPUT_PATH/manifest.json:application/${{env.VENDOR_MEDIA_TYPE_NAMESPACE}}.plugin-manifest+json \
+            ./main.js:application/javascript \
+            ./styles.css:text/css \
+            ./manifest.json:application/${{env.VENDOR_MEDIA_TYPE_NAMESPACE}}-manifest+json \
             --format json`
           echo "$PUSH_OUTPUT"
 
