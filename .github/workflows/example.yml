@@ -13,11 +13,9 @@ jobs:
     uses: ./.github/workflows/build.yml
     with:
       plugin-name: 'example-plugin'
-      node-version: '20'
       build-command: 'npm run build'
       source-directory: 'dist'
       working-directory: 'example-plugin'
-      package-manager: 'npm'
     permissions:
       contents: read
       packages: write
@@ -141,5 +139,5 @@ jobs:
           echo "**SHA256:** \`${{ needs.build.outputs.artifact-digest }}\`" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### 🔒 Security Attestations" >> $GITHUB_STEP_SUMMARY
-          echo "- **SBOM ID:** \`${{ needs.build.outputs.sbom-attestation-id }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "- **Provenance ID:** \`${{ needs.build.outputs.provenance-attestation-id }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **SBOM URL:** ${{ needs.build.outputs.sbom-attestation-url }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Provenance URL:** ${{ needs.build.outputs.provenance-attestation-url }}" >> $GITHUB_STEP_SUMMARY
