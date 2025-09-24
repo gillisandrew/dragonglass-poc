@@ -147,7 +147,7 @@ jobs:
           sbom-path: ${{ steps.verify-files.outputs.source-path }}/sbom.spdx.json
           push-to-registry: true
           subject-digest: sha256:${{ steps.package.outputs.artifact-digest }}
-          subject-name: ghcr.io/${{ github.repository }}/${{ inputs.plugin-name }}:${{ steps.package.outputs.artifact-name }}
+          subject-name: ghcr.io/${{ github.repository }}:${{ steps.package.outputs.artifact-name }}
 
       - name: Attest build provenance
         id: attest-provenance
@@ -155,4 +155,4 @@ jobs:
         with:
           push-to-registry: true
           subject-digest: sha256:${{ steps.package.outputs.artifact-digest }}
-          subject-name: ghcr.io/${{ github.repository }}/${{ inputs.plugin-name }}:${{ steps.package.outputs.artifact-name }}
+          subject-name: ghcr.io/${{ github.repository }}:${{ steps.package.outputs.artifact-name }}
