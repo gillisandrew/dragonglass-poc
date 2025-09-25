@@ -36,7 +36,7 @@ jobs:
           go-version-file: go.mod
       - name: Verify provenance attestation
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
           echo "### 🔒 Dragonglass Plugin Verification" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
