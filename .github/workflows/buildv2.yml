@@ -45,6 +45,7 @@ jobs:
         with:
           repository: ${{ env.WORKFLOW_REPOSITORY }}
           ref: main
+          path: ${{ github.workspace}}
       - name: Set up Go
         uses: actions/setup-go@v6
         with:
