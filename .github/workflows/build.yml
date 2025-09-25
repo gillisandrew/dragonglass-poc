@@ -4,27 +4,27 @@ on:
   workflow_call:
     inputs:
       plugin-directory:
-        description: 'Working directory containing package.json and build files'
+        description: "Working directory containing package.json and build files"
         required: false
         type: string
-        default: '.'
+        default: "."
       esbuild-config:
-        description: 'Path to esbuild config file'
+        description: "Path to esbuild config file"
         required: false
         type: string
-        default: 'esbuild.config.mjs'
+        default: "esbuild.config.mjs"
     outputs:
       subject-name:
-        description: 'Name of the built artifact'
+        description: "Name of the built artifact"
         value: ${{ jobs.build-and-attest.outputs.subject-name }}
       subject-digest:
-        description: 'SHA256 digest of the artifact'
+        description: "SHA256 digest of the artifact"
         value: ${{ jobs.build-and-attest.outputs.subject-digest }}
       sbom-attestation-url:
-        description: 'URL of the SBOM attestation'
+        description: "URL of the SBOM attestation"
         value: ${{ jobs.build-and-attest.outputs.sbom-attestation-url }}
       provenance-attestation-url:
-        description: 'URL of the provenance attestation'
+        description: "URL of the provenance attestation"
         value: ${{ jobs.build-and-attest.outputs.provenance-attestation-url }}
 
 permissions:
@@ -42,7 +42,7 @@ jobs:
       sbom-attestation-url: ${{ steps.attest-sbom.outputs.attestation-url }}
       provenance-attestation-url: ${{ steps.attest-provenance.outputs.attestation-url}}
     env:
-      VENDOR_MEDIA_TYPE_NAMESPACE: vnd.dragonglass.plugin
+      VENDOR_MEDIA_TYPE_NAMESPACE: md.obsidian.plugin.v0
       PLUGIN_DIR: "${{ inputs.plugin-directory }}"
       SBOM_OUTPUT_FILE: "${{ github.workspace }}/sbom.spdx.json"
       BUILD_OUTPUT_DIR: "${{ github.workspace }}/${{ inputs.plugin-directory }}/dist"
@@ -144,14 +144,14 @@ jobs:
               "org.opencontainers.image.authors": $author,
               "org.opencontainers.image.revision": $sourceCommit,
               "org.opencontainers.image.title": $name,
-              "vnd.obsidian.plugin.id": $id,
-              "vnd.obsidian.plugin.name": $name,
-              "vnd.obsidian.plugin.version": $version,
-              "vnd.obsidian.plugin.minAppVersion": $minAppVersion,
-              "vnd.obsidian.plugin.description": $description,
-              "vnd.obsidian.plugin.author": $author,
-              "vnd.obsidian.plugin.authorUrl": $authorUrl,
-              "vnd.obsidian.plugin.isDesktopOnly": $isDesktopOnly
+              "md.obsidian.plugin.v0.id": $id,
+              "md.obsidian.plugin.v0.name": $name,
+              "md.obsidian.plugin.v0.version": $version,
+              "md.obsidian.plugin.v0.minAppVersion": $minAppVersion,
+              "md.obsidian.plugin.v0.description": $description,
+              "md.obsidian.plugin.v0.author": $author,
+              "md.obsidian.plugin.v0.authorUrl": $authorUrl,
+              "md.obsidian.plugin.v0.isDesktopOnly": $isDesktopOnly
             }
           }' > $ANNOTATION_FILE
           if [ $? -ne 0 ]; then

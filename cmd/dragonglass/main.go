@@ -17,13 +17,15 @@ import (
 
 var (
 	// Global flags
-	annotationNamespace string
-	trustedBuilder      string
-	configPath          string
-	lockfilePath        string
-	githubToken         string
-	verbose             bool
-	quiet               bool
+	defaultAnnotationNamespace = "md.obsidian.plugin.v0"
+	defaultTrustedBuilder      = "https://github.com/gillisandrew/dragonglass-poc/.github/workflows/build.yml@refs/heads/main"
+	annotationNamespace        string
+	trustedBuilder             string
+	configPath                 string
+	lockfilePath               string
+	githubToken                string
+	verbose                    bool
+	quiet                      bool
 )
 
 var rootCmd = &cobra.Command{
@@ -38,8 +40,8 @@ vulnerability scanning before installation.`,
 
 func init() {
 	// Global persistent flags
-	rootCmd.PersistentFlags().StringVar(&annotationNamespace, "annotation-namespace", "vnd.obsidian.plugin", "Plugin annotation namespace prefix")
-	rootCmd.PersistentFlags().StringVar(&trustedBuilder, "trusted-builder", "https://github.com/gillisandrew/dragonglass-poc/.github/workflows/build.yml@refs/heads/main", "Trusted workflow signer identity")
+	rootCmd.PersistentFlags().StringVar(&annotationNamespace, "annotation-namespace", defaultAnnotationNamespace, "Plugin annotation namespace prefix")
+	rootCmd.PersistentFlags().StringVar(&trustedBuilder, "trusted-builder", defaultTrustedBuilder, "Trusted workflow signer identity")
 	rootCmd.PersistentFlags().StringVar(&configPath, "config", "", "Path to configuration file")
 	rootCmd.PersistentFlags().StringVar(&lockfilePath, "lockfile", "", "Path to lockfile")
 	rootCmd.PersistentFlags().StringVar(&githubToken, "github-token", "", "GitHub authentication token")

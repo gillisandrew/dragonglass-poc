@@ -104,14 +104,14 @@ jobs:
               "org.opencontainers.image.authors": $author,
               "org.opencontainers.image.revision": $sourceCommit,
               "org.opencontainers.image.title": $name,
-              "vnd.obsidian.plugin.id": $id,
-              "vnd.obsidian.plugin.name": $name,
-              "vnd.obsidian.plugin.version": $version,
-              "vnd.obsidian.plugin.minAppVersion": $minAppVersion,
-              "vnd.obsidian.plugin.description": $description,
-              "vnd.obsidian.plugin.author": $author,
-              "vnd.obsidian.plugin.authorUrl": $authorUrl,
-              "vnd.obsidian.plugin.isDesktopOnly": $isDesktopOnly
+              "md.obsidian.plugin.v0.id": $id,
+              "md.obsidian.plugin.v0.name": $name,
+              "md.obsidian.plugin.v0.version": $version,
+              "md.obsidian.plugin.v0.minAppVersion": $minAppVersion,
+              "md.obsidian.plugin.v0.description": $description,
+              "md.obsidian.plugin.v0.author": $author,
+              "md.obsidian.plugin.v0.authorUrl": $authorUrl,
+              "md.obsidian.plugin.v0.isDesktopOnly": $isDesktopOnly
             }
           }' > $ANNOTATION_FILE
           if [ $? -ne 0 ]; then
