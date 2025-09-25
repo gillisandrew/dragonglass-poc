@@ -123,7 +123,7 @@ func build(ctx context.Context, path, ref, directory string) error {
 		From("node:22").
 		WithDirectory("/usr/src/plugin", workingDir).
 		WithWorkdir("/usr/src/plugin").
-		WithExec([]string{"npm", "ci"}).
+		WithExec([]string{"bash", "-c", "test -f package-lock.json && npm ci || npm install"}).
 		WithExec([]string{"bash", "-c", "npm sbom --sbom-type application --sbom-format spdx > sbom.spdx.json"})
 		// With([]string{""npm", "sbom", "--sbom-type", "application", "--sbom-format", "spdx", ">", "sbom.spdx.json"}).Terminal()
 
