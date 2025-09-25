@@ -79,7 +79,7 @@ func main() {
 	rootCmd.Flags().StringVarP(&commit, "commit", "c", "", "Specific commit hash to use - only used for remote repositories (takes precedence over --ref)")
 	rootCmd.Flags().StringVarP(&directory, "directory", "d", "", "Subdirectory to build from (defaults to root of path for both local and remote)")
 	rootCmd.Flags().StringVarP(&outputDir, "output-dir", "o", "dist", "Directory where final built plugin artifacts will be exported")
-	rootCmd.Flags().StringVar(&buildDir, "build-dir", "dist", "Directory where npm run build outputs artifacts (relative to plugin directory)")
+	rootCmd.Flags().StringVar(&buildDir, "build-dir", "", "Directory where npm run build outputs artifacts (relative to plugin directory)")
 
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)

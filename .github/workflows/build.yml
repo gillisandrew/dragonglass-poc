@@ -24,7 +24,7 @@ on:
         type: string
         description: "Directory where npm run build outputs artifacts (relative to plugin directory)"
         required: false
-        default: "dist"
+        default: ""
       output-directory:
         type: string
         description: "Directory where final built plugin artifacts will be exported"
