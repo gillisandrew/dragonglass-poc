@@ -56,7 +56,7 @@ jobs:
         with:
           verb: run
           workdir: ${{ github.workspace }}
-          args: go run ./cmd/dragonglass-build "https://github.com/${{ github.repository}}" "${{ github.sha }}" "${{ env.PLUGIN_DIRECTORY }}"
+          args: go run ./cmd/dragonglass-build "https://github.com/${{ github.repository}}" --ref "${{ github.sha }}" --directory "${{ env.PLUGIN_DIRECTORY }}"
       - name: Resolve plugin metadata
         id: plugin-metadata
         working-directory: ${{ env.BUILD_OUTPUT_DIR }}

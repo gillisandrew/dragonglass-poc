@@ -4,36 +4,124 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path/filepath"
+	"strings"
 
+	"dagger.io/dagger"
 	"dagger.io/dagger/dag"
+	"github.com/spf13/cobra"
+)
+
+var (
+	ref       string
+	directory string
+
+	// Build-time variables (injected via -ldflags)
+	Version   = "dev"
+	Commit    = "unknown"
+	BuildTime = "unknown"
 )
 
 func main() {
-	if len(os.Args) < 4 {
-		fmt.Fprintf(os.Stderr, "Usage: %s <repository> <ref> <plugin>\n", os.Args[0])
-		fmt.Fprintf(os.Stderr, "Example: %s https://github.com/gillisandrew/dragonglass-poc.git main example-plugin\n", os.Args[0])
-		os.Exit(1)
+	var rootCmd = &cobra.Command{
+		Use:   "dragonglass-build <path>",
+		Short: "Build plugins using Dagger",
+		Long:  "A CLI tool to build plugins from a local directory or remote git repository using Dagger",
+		Args:  cobra.ExactArgs(1),
+		Example: `  # Build from remote repository
+  dragonglass-build https://github.com/user/repo.git --ref main --directory plugin-folder
+  dragonglass-build https://github.com/user/repo.git --ref main  # uses repository root
+  
+  # Build from local directory
+  dragonglass-build . --directory example-plugin  # build from ./example-plugin subdirectory
+  dragonglass-build /path/to/project --directory my-plugin  # build from /path/to/project/my-plugin
+  dragonglass-build ./example-plugin  # build from ./example-plugin (no subdirectory)`,
+		Run: func(cmd *cobra.Command, args []string) {
+			path := args[0]
+
+			// Use directory flag for both local and remote (defaults to root)
+			finalDirectory := directory
+			if finalDirectory == "" {
+				finalDirectory = "." // Use root of the path
+			}
+
+			if err := build(context.Background(), path, ref, finalDirectory); err != nil {
+				fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+				os.Exit(1)
+			}
+		},
 	}
 
-	repository := os.Args[1]
-	ref := os.Args[2]
-	plugin := os.Args[3]
+	// Version command
+	var versionCmd = &cobra.Command{
+		Use:   "version",
+		Short: "Print version information",
+		Run: func(cmd *cobra.Command, args []string) {
+			fmt.Printf("dragonglass-build version %s\n", Version)
+			fmt.Printf("Git commit: %s\n", Commit)
+			fmt.Printf("Build time: %s\n", BuildTime)
+		},
+	}
 
-	if err := build(context.Background(), repository, ref, plugin); err != nil {
-		fmt.Println(err)
+	rootCmd.AddCommand(versionCmd)
+
+	rootCmd.Flags().StringVarP(&ref, "ref", "r", "main", "Git reference (branch, tag, or commit) - only used for remote repositories")
+	rootCmd.Flags().StringVarP(&directory, "directory", "d", "", "Subdirectory to build from (defaults to root of path for both local and remote)")
+
+	if err := rootCmd.Execute(); err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
 	}
 }
 
-func build(ctx context.Context, repository, ref, plugin string) error {
+func build(ctx context.Context, path, ref, directory string) error {
 	fmt.Println("Building with Dagger")
 	defer dag.Close()
 
 	// create empty directory to put build outputs
 	outputs := dag.Directory()
-	repo := dag.Git(repository).Ref(ref).Tree()
+
+	var workingDir *dagger.Directory
+
+	// Determine if path is a remote repository URL or local directory
+	if isRemoteRepository(path) {
+		fmt.Printf("Building from remote repository: %s (ref: %s)\n", path, ref)
+		repo := dag.Git(path).Ref(ref).Tree()
+
+		if directory == "." {
+			fmt.Printf("Using repository root\n")
+			workingDir = repo
+		} else {
+			fmt.Printf("Using directory: %s\n", directory)
+			workingDir = repo.Directory(directory)
+		}
+	} else {
+		fmt.Printf("Building from local directory: %s\n", path)
+		// Convert relative path to absolute path
+		absPath, err := filepath.Abs(path)
+		if err != nil {
+			return fmt.Errorf("failed to resolve absolute path: %v", err)
+		}
+
+		// Check if the directory exists
+		if _, err := os.Stat(absPath); os.IsNotExist(err) {
+			return fmt.Errorf("directory does not exist: %s", absPath)
+		}
+
+		// For local builds, use the directory flag to specify subdirectory
+		repo := dag.Host().Directory(absPath)
+		if directory == "." {
+			fmt.Printf("Using entire directory\n")
+			workingDir = repo
+		} else {
+			fmt.Printf("Using subdirectory: %s\n", directory)
+			workingDir = repo.Directory(directory)
+		}
+	}
+
 	installer := dag.Container().
 		From("node:22").
-		WithDirectory("/usr/src/plugin", repo.Directory(plugin)).
+		WithDirectory("/usr/src/plugin", workingDir).
 		WithWorkdir("/usr/src/plugin").
 		WithExec([]string{"npm", "ci"}).
 		WithExec([]string{"bash", "-c", "npm sbom --sbom-type application --sbom-format spdx > sbom.spdx.json"})
@@ -51,4 +139,12 @@ func build(ctx context.Context, repository, ref, plugin string) error {
 		return err
 	}
 	return nil
+}
+
+// isRemoteRepository checks if the given path is a remote repository URL
+func isRemoteRepository(path string) bool {
+	return strings.HasPrefix(path, "http://") ||
+		strings.HasPrefix(path, "https://") ||
+		strings.HasPrefix(path, "git@") ||
+		strings.HasPrefix(path, "ssh://")
 }
