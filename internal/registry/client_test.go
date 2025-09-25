@@ -186,10 +186,14 @@ func TestNewClient(t *testing.T) {
 }
 
 func TestSetRegistry(t *testing.T) {
-	// Create a client without authentication for testing
-	client := &Client{}
+	// Create a client with proper initialization
+	opts := DefaultRegistryOpts()
+	client, err := NewClient(opts)
+	if err != nil {
+		t.Fatalf("failed to create client: %v", err)
+	}
 
-	err := client.SetRegistry("localhost:5000")
+	err = client.SetRegistry("localhost:5000")
 	if err != nil {
 		t.Errorf("failed to set registry: %v", err)
 	}

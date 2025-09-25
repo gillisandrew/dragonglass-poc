@@ -35,8 +35,8 @@ func (e ValidationError) Error() string {
 
 // ValidationResult holds the results of plugin validation
 type ValidationResult struct {
-	Valid  bool
-	Errors []ValidationError
+	Valid    bool
+	Errors   []ValidationError
 	Warnings []string
 }
 
@@ -174,7 +174,7 @@ func (p *ManifestParser) ValidatePluginStructure(layers []LayerContent) *Validat
 	}
 
 	requiredFiles := map[string]bool{
-		"main.js":     false,
+		"main.js":       false,
 		"manifest.json": false,
 	}
 
@@ -245,7 +245,6 @@ func isValidVersion(version string) bool {
 	matched, _ := regexp.MatchString(`^\d+\.\d+\.\d+(-[a-zA-Z0-9.-]+)?(\+[a-zA-Z0-9.-]+)?$`, version)
 	return matched
 }
-
 
 func isValidURL(url string) bool {
 	// Basic URL validation

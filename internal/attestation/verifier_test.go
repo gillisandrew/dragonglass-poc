@@ -38,12 +38,12 @@ func TestVerifySLSA(t *testing.T) {
 	}
 
 	tests := []struct {
-		name         string
-		attestations []AttestationData
-		expectValid  bool
+		name          string
+		attestations  []AttestationData
+		expectValid   bool
 		expectBuilder string
-		expectRepo   string
-		expectError  bool
+		expectRepo    string
+		expectError   bool
 	}{
 		{
 			name: "valid trusted builder",
@@ -55,7 +55,7 @@ func TestVerifySLSA(t *testing.T) {
 							"buildType": "https://github.com/gillisandrew/dragonglass-poc/actions/workflows/build.yml@refs/heads/main",
 							"externalParameters": map[string]interface{}{
 								"workflow": map[string]interface{}{
-									"ref": "refs/heads/main",
+									"ref":        "refs/heads/main",
 									"repository": "github.com/owner/repo",
 								},
 							},
@@ -83,7 +83,7 @@ func TestVerifySLSA(t *testing.T) {
 							"buildType": "https://malicious.com/builder",
 							"externalParameters": map[string]interface{}{
 								"workflow": map[string]interface{}{
-									"ref": "refs/heads/main",
+									"ref":        "refs/heads/main",
 									"repository": "malicious/repo",
 								},
 							},
@@ -155,13 +155,13 @@ func TestVerifySBOM(t *testing.T) {
 	}
 
 	tests := []struct {
-		name           string
-		attestations   []AttestationData
-		expectValid    bool
-		expectFormat   string
+		name             string
+		attestations     []AttestationData
+		expectValid      bool
+		expectFormat     string
 		expectComponents int
-		expectVulns    int
-		expectError    bool
+		expectVulns      int
+		expectError      bool
 	}{
 		{
 			name: "valid SPDX 2.3 SBOM",
@@ -510,9 +510,9 @@ func TestFormatVerificationResult(t *testing.T) {
 					Builder:    "https://github.com/actions/runner",
 				},
 				SBOM: &SBOMResult{
-					Valid:      true,
-					Format:     "SPDX-2.3",
-					Components: 42,
+					Valid:           true,
+					Format:          "SPDX-2.3",
+					Components:      42,
 					Vulnerabilities: []Vulnerability{},
 				},
 			},
@@ -529,9 +529,9 @@ func TestFormatVerificationResult(t *testing.T) {
 		{
 			name: "invalid with vulnerabilities",
 			result: &VerificationResult{
-				Found: true,
-				Valid: false,
-				Errors: []string{"validation failed"},
+				Found:    true,
+				Valid:    false,
+				Errors:   []string{"validation failed"},
 				Warnings: []string{"minor issue"},
 				SBOM: &SBOMResult{
 					Valid:      true,

@@ -79,27 +79,27 @@ type Config struct {
 }
 
 type VerificationConfig struct {
-	StrictMode         bool `json:"strict_mode"`
+	StrictMode        bool `json:"strict_mode"`
 	SkipVulnScan      bool `json:"skip_vuln_scan"`
 	AllowHighSeverity bool `json:"allow_high_severity"`
 }
 
 type OutputConfig struct {
-	Format  string `json:"format"`   // "text", "json"
+	Format  string `json:"format"` // "text", "json"
 	Verbose bool   `json:"verbose"`
 	Color   bool   `json:"color"`
 }
 
 type RegistryConfig struct {
 	DefaultRegistry string            `json:"default_registry"`
-	Mirrors        map[string]string `json:"mirrors,omitempty"`
+	Mirrors         map[string]string `json:"mirrors,omitempty"`
 }
 
 func DefaultConfig() *Config {
 	return &Config{
 		Version: "1",
 		Verification: VerificationConfig{
-			StrictMode:         false,
+			StrictMode:        false,
 			SkipVulnScan:      false,
 			AllowHighSeverity: false,
 		},
@@ -110,7 +110,7 @@ func DefaultConfig() *Config {
 		},
 		Registry: RegistryConfig{
 			DefaultRegistry: "ghcr.io",
-			Mirrors:        make(map[string]string),
+			Mirrors:         make(map[string]string),
 		},
 	}
 }

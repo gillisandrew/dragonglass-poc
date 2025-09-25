@@ -107,7 +107,11 @@ func TestManifestParser_ParseMetadata_New(t *testing.T) {
 }
 
 func TestManifestParser_ValidateMetadata_New(t *testing.T) {
-	parser := NewManifestParser(nil)
+	// Use strict validation to ensure format validation errors are reported as errors
+	opts := &PluginOpts{
+		StrictValidation: true,
+	}
+	parser := NewManifestParser(opts)
 
 	tests := []struct {
 		name       string

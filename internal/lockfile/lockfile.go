@@ -13,8 +13,8 @@ import (
 )
 
 const (
-	LockfileName       = "dragonglass-lock.json"
-	LockfileVersion    = "1"
+	LockfileName         = "dragonglass-lock.json"
+	LockfileVersion      = "1"
 	DefaultLockfilePerms = 0644
 )
 
@@ -78,28 +78,28 @@ func NewLockfileManager(opts *LockfileOpts) *LockfileManager {
 }
 
 type Lockfile struct {
-	Version     string                     `json:"version"`
-	GeneratedAt time.Time                  `json:"generated_at"`
-	UpdatedAt   time.Time                  `json:"updated_at"`
-	Plugins     map[string]PluginEntry     `json:"plugins"`
-	Metadata    LockfileMetadata           `json:"metadata"`
+	Version     string                 `json:"version"`
+	GeneratedAt time.Time              `json:"generated_at"`
+	UpdatedAt   time.Time              `json:"updated_at"`
+	Plugins     map[string]PluginEntry `json:"plugins"`
+	Metadata    LockfileMetadata       `json:"metadata"`
 }
 
 type PluginEntry struct {
-	Name            string                 `json:"name"`
-	Version         string                 `json:"version"`
-	OCIReference    string                 `json:"oci_reference"`
-	OCIDigest       string                 `json:"oci_digest"`
-	VerificationState VerificationState    `json:"verification_state"`
-	Metadata        PluginMetadata         `json:"metadata"`
+	Name              string            `json:"name"`
+	Version           string            `json:"version"`
+	OCIReference      string            `json:"oci_reference"`
+	OCIDigest         string            `json:"oci_digest"`
+	VerificationState VerificationState `json:"verification_state"`
+	Metadata          PluginMetadata    `json:"metadata"`
 }
 
 type VerificationState struct {
 	ProvenanceVerified bool     `json:"provenance_verified"`
-	SBOMVerified      bool     `json:"sbom_verified"`
-	VulnScanPassed    bool     `json:"vuln_scan_passed"`
-	Warnings          []string `json:"warnings,omitempty"`
-	Errors            []string `json:"errors,omitempty"`
+	SBOMVerified       bool     `json:"sbom_verified"`
+	VulnScanPassed     bool     `json:"vuln_scan_passed"`
+	Warnings           []string `json:"warnings,omitempty"`
+	Errors             []string `json:"errors,omitempty"`
 }
 
 type PluginMetadata struct {
@@ -113,9 +113,9 @@ type PluginMetadata struct {
 }
 
 type LockfileMetadata struct {
-	VaultPath        string `json:"vault_path"`
+	VaultPath          string `json:"vault_path"`
 	DragongrassVersion string `json:"dragonglass_version"`
-	SchemaVersion    string `json:"schema_version"`
+	SchemaVersion      string `json:"schema_version"`
 }
 
 func NewLockfile(vaultPath string) *Lockfile {
@@ -126,9 +126,9 @@ func NewLockfile(vaultPath string) *Lockfile {
 		UpdatedAt:   now,
 		Plugins:     make(map[string]PluginEntry),
 		Metadata: LockfileMetadata{
-			VaultPath:         vaultPath,
+			VaultPath:          vaultPath,
 			DragongrassVersion: "dev", // TODO: get from build info
-			SchemaVersion:     LockfileVersion,
+			SchemaVersion:      LockfileVersion,
 		},
 	}
 }

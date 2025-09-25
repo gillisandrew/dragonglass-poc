@@ -8,11 +8,11 @@ import (
 	"github.com/pterm/pterm"
 	"github.com/spf13/cobra"
 
-	"github.com/gillisandrew/dragonglass-cli/internal/cmd"
-	"github.com/gillisandrew/dragonglass-cli/internal/cmd/auth"
-	"github.com/gillisandrew/dragonglass-cli/internal/cmd/install"
-	"github.com/gillisandrew/dragonglass-cli/internal/cmd/list"
-	"github.com/gillisandrew/dragonglass-cli/internal/cmd/verify"
+	"github.com/gillisandrew/dragonglass-poc/internal/cmd"
+	"github.com/gillisandrew/dragonglass-poc/internal/cmd/auth"
+	"github.com/gillisandrew/dragonglass-poc/internal/cmd/install"
+	"github.com/gillisandrew/dragonglass-poc/internal/cmd/list"
+	"github.com/gillisandrew/dragonglass-poc/internal/cmd/verify"
 )
 
 var (

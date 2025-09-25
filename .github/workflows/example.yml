@@ -29,88 +29,44 @@ jobs:
       attestations: read
     steps:
       - uses: oras-project/setup-oras@v1
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+      - uses: actions/checkout@v4
       - name: Verify provenance attestation
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          echo "### 🔒 Provenance Attestation Verification" >> $GITHUB_STEP_SUMMARY
-
-          # Verify SLSA provenance
-          PROVENANCE_RESULT=$(gh attestation verify "oci://${{ needs.build.outputs.subject-name }}" \
-            --repo gillisandrew/dragonglass-poc \
-            --signer-workflow gillisandrew/dragonglass-poc/.github/workflows/buildv2.yml \
-            --deny-self-hosted-runners \
-            --predicate-type https://slsa.dev/provenance/v1 \
-            --format json)
-
-          # Extract key information from the JSON
-          ARTIFACT_NAME=$(echo "$PROVENANCE_RESULT" | jq -r '.[0].verificationResult.statement.subject[0].name')
-          ARTIFACT_DIGEST=$(echo "$PROVENANCE_RESULT" | jq -r '.[0].verificationResult.statement.subject[0].digest.sha256')
-          BUILD_TRIGGER=$(echo "$PROVENANCE_RESULT" | jq -r '.[0].verificationResult.signature.certificate.githubWorkflowTrigger')
-          RUNNER_ENV=$(echo "$PROVENANCE_RESULT" | jq -r '.[0].verificationResult.signature.certificate.runnerEnvironment')
-          WORKFLOW_REF=$(echo "$PROVENANCE_RESULT" | jq -r '.[0].verificationResult.signature.certificate.githubWorkflowRef')
-          VERIFIED_TIMESTAMP=$(echo "$PROVENANCE_RESULT" | jq -r '.[0].verificationResult.verifiedTimestamps[0].timestamp')
-
-          echo "**✅ SLSA Provenance Verification Successful**" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| Attribute | Value |" >> $GITHUB_STEP_SUMMARY
-          echo "|-----------|-------|" >> $GITHUB_STEP_SUMMARY
-          echo "| **Artifact** | \`$ARTIFACT_NAME\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| **SHA256** | \`${ARTIFACT_DIGEST:0:12}...\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| **Build Trigger** | \`$BUILD_TRIGGER\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| **Runner Environment** | \`$RUNNER_ENV\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| **Workflow Ref** | \`$WORKFLOW_REF\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| **Verified At** | \`$VERIFIED_TIMESTAMP\` |" >> $GITHUB_STEP_SUMMARY
+          echo "### 🔒 Dragonglass Plugin Verification" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
 
-          # Verify SBOM attestation
-          SBOM_RESULT=$(gh attestation verify "oci://${{ needs.build.outputs.subject-name }}" \
-            --repo gillisandrew/dragonglass-poc \
-            --signer-workflow gillisandrew/dragonglass-poc/.github/workflows/buildv2.yml \
-            --deny-self-hosted-runners \
-            --predicate-type https://spdx.dev/Document/v2.3 \
-            --format json)
-
-          # Extract SBOM information
-          SBOM_DOCUMENT_NAME=$(echo "$SBOM_RESULT" | jq -r '.[0].verificationResult.statement.predicate.name')
-          SBOM_VERSION=$(echo "$SBOM_RESULT" | jq -r '.[0].verificationResult.statement.predicate.spdxVersion')
-          SBOM_CREATED=$(echo "$SBOM_RESULT" | jq -r '.[0].verificationResult.statement.predicate.creationInfo.created')
-          SBOM_CREATOR_TOOL=$(echo "$SBOM_RESULT" | jq -r '.[0].verificationResult.statement.predicate.creationInfo.creators[0]')
-          PACKAGE_COUNT=$(echo "$SBOM_RESULT" | jq -r '.[0].verificationResult.statement.predicate.packages | length')
-          DATA_LICENSE=$(echo "$SBOM_RESULT" | jq -r '.[0].verificationResult.statement.predicate.dataLicense')
-          RELATIONSHIP_COUNT=$(echo "$SBOM_RESULT" | jq -r '.[0].verificationResult.statement.predicate.relationships | length')
-
-          echo "**✅ SBOM Attestation Verification Successful**" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| Attribute | Value |" >> $GITHUB_STEP_SUMMARY
-          echo "|-----------|-------|" >> $GITHUB_STEP_SUMMARY
-          echo "| **SPDX Version** | \`$SBOM_VERSION\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| **Data License** | \`$DATA_LICENSE\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| **Created** | \`$SBOM_CREATED\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| **Creator Tool** | \`$SBOM_CREATOR_TOOL\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| **Package Count** | \`$PACKAGE_COUNT\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| **Relationships** | \`$RELATIONSHIP_COUNT\` |" >> $GITHUB_STEP_SUMMARY
+          # Use our dragonglass CLI to verify the plugin
+          echo "🚀 **Verifying plugin with Dragonglass CLI**" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
 
-          # List all packages/dependencies with enhanced formatting
-          echo "#### 📦 Package Analysis" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-
-          # Extract detailed package information
-          echo "$SBOM_RESULT" | jq -r '.[0].verificationResult.statement.predicate.packages[] | 
-            "**" + .name + "** `" + (.versionInfo // "unknown") + "`" + 
-            (if .description then "\n> " + .description else "" end) +
-            (if .licenseDeclared and .licenseDeclared != "NOASSERTION" then "\n- **License:** " + .licenseDeclared else "" end) +
-            (if .primaryPackagePurpose then "\n- **Purpose:** " + .primaryPackagePurpose else "" end) +
-            (if .homepage and .homepage != "NOASSERTION" then "\n- **Homepage:** " + .homepage else "" end) +
-            (if .externalRefs then (.externalRefs | map(if .referenceType == "purl" then "\n- **Package URL:** `" + .referenceLocator + "`" else "" end) | join("")) else "" end) +
-            "\n"' >> $GITHUB_STEP_SUMMARY
-
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "---" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**📊 SBOM Summary:**" >> $GITHUB_STEP_SUMMARY
-          echo "- Document: \`$SBOM_DOCUMENT_NAME\`" >> $GITHUB_STEP_SUMMARY
-          echo "- Generated by: \`$SBOM_CREATOR_TOOL\`" >> $GITHUB_STEP_SUMMARY
-          echo "- Total packages: \`$PACKAGE_COUNT\`" >> $GITHUB_STEP_SUMMARY
-          echo "- Relationships: \`$RELATIONSHIP_COUNT\`" >> $GITHUB_STEP_SUMMARY
+          # Run dragonglass verify command with verbose output
+          if go run ./cmd/dragonglass verify \
+            --github-token="${{ secrets.GITHUB_TOKEN }}" \
+            --trusted-builder="https://github.com/gillisandrew/dragonglass-poc/.github/workflows/buildv2.yml@refs/heads/main" \
+            --verbose \
+            "oci://${{ needs.build.outputs.subject-name }}"; then
+            
+            echo "**✅ Plugin Verification Successful**" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "| Component | Status |" >> $GITHUB_STEP_SUMMARY
+            echo "|-----------|--------|" >> $GITHUB_STEP_SUMMARY
+            echo "| **Plugin Metadata** | ✅ Valid |" >> $GITHUB_STEP_SUMMARY
+            echo "| **SLSA Provenance** | ✅ Verified |" >> $GITHUB_STEP_SUMMARY
+            echo "| **SBOM Attestation** | ✅ Verified |" >> $GITHUB_STEP_SUMMARY
+            echo "| **Vulnerability Scan** | ✅ Passed |" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "**Verified Artifact:** \`${{ needs.build.outputs.subject-name }}\`" >> $GITHUB_STEP_SUMMARY
+            echo "**Trusted Builder:** \`https://github.com/gillisandrew/dragonglass-poc/.github/workflows/buildv2.yml@refs/heads/main\`" >> $GITHUB_STEP_SUMMARY
+            
+          else
+            echo "**❌ Plugin Verification Failed**" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "The plugin failed security verification checks. Please review the build logs above for details." >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi

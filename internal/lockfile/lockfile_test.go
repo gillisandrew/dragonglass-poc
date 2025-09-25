@@ -241,9 +241,9 @@ func TestUpdatePluginVerification(t *testing.T) {
 
 	verification := VerificationState{
 		ProvenanceVerified: true,
-		SBOMVerified:      true,
-		VulnScanPassed:    false,
-		Warnings:          []string{"High severity vulnerability found"},
+		SBOMVerified:       true,
+		VulnScanPassed:     false,
+		Warnings:           []string{"High severity vulnerability found"},
 	}
 
 	err = lockfile.UpdatePluginVerification(pluginID, verification)
@@ -411,9 +411,9 @@ func TestLoadSaveLockfile(t *testing.T) {
 		OCIDigest:    "sha256:abc123def456",
 		VerificationState: VerificationState{
 			ProvenanceVerified: true,
-			SBOMVerified:      true,
-			VulnScanPassed:    true,
-			},
+			SBOMVerified:       true,
+			VulnScanPassed:     true,
+		},
 		Metadata: PluginMetadata{
 			Author:      "Test Author",
 			Description: "A test plugin",

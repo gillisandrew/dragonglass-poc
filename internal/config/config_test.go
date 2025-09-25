@@ -43,8 +43,8 @@ func TestConfigValidation(t *testing.T) {
 		{
 			name: "missing version",
 			config: Config{
-				Version: "",
-				Output:  OutputConfig{Format: "text"},
+				Version:  "",
+				Output:   OutputConfig{Format: "text"},
 				Registry: RegistryConfig{DefaultRegistry: "ghcr.io"},
 			},
 			expectError: true,
@@ -63,8 +63,8 @@ func TestConfigValidation(t *testing.T) {
 		{
 			name: "missing default registry",
 			config: Config{
-				Version: "1",
-				Output:  OutputConfig{Format: "text"},
+				Version:  "1",
+				Output:   OutputConfig{Format: "text"},
 				Registry: RegistryConfig{DefaultRegistry: ""},
 			},
 			expectError: true,
@@ -177,8 +177,8 @@ func TestLoadConfig(t *testing.T) {
 
 	// Test loading invalid config (fails validation)
 	invalidConfig := Config{
-		Version: "",  // invalid: empty version
-		Output:  OutputConfig{Format: "text"},
+		Version:  "", // invalid: empty version
+		Output:   OutputConfig{Format: "text"},
 		Registry: RegistryConfig{DefaultRegistry: "ghcr.io"},
 	}
 

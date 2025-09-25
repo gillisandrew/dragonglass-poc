@@ -4,7 +4,6 @@ go 1.25.1
 
 require (
 	dagger.io/dagger v0.18.19
-	github.com/gillisandrew/dragonglass-cli v0.0.0-20250924222006-609a1614bd9f
 	github.com/in-toto/attestation v1.1.2
 	github.com/opencontainers/go-digest v1.0.0
 	github.com/opencontainers/image-spec v1.1.1
