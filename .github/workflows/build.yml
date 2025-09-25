@@ -55,6 +55,8 @@ jobs:
       WORKFLOW_REPOSITORY: gillisandrew/dragonglass-poc
       PLUGIN_DIRECTORY: ${{ inputs.plugin-directory}}
       BUILD_DIRECTORY: ${{ inputs.build-directory }}
+      PLUGIN_REPOSITORY: ${{ inputs.plugin-repository }}
+      PLUGIN_REF: ${{ inputs.plugin-ref }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v5
@@ -67,9 +69,12 @@ jobs:
         with:
           go-version-file: go.mod
       - name: Build plugin
+        env:
+          PLUGIN_DIRECTORY: ${{ inputs.plugin-directory }}
+          BUILD_DIRECTORY: ${{ inputs.build-directory }}
         run: |
-          go run ./cmd/dragonglass-build https://github.com/${{ github.repository }} \
-          --ref "${{ github.sha }}" \
+          go run ./cmd/dragonglass-build https://github.com/$PLUGIN_REPOSITORY \
+          --ref "$PLUGIN_REF" \
           --directory "$PLUGIN_DIRECTORY" \
           --build-dir "$BUILD_DIRECTORY"
       - name: Resolve plugin metadata
