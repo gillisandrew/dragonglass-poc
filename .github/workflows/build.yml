@@ -16,6 +16,11 @@ on:
         type: string
         description: "Directory of the plugin to build"
         required: false
+      build-directory:
+        type: string
+        description: "Directory where final built plugin artifacts will be exported"
+        required: false
+        default: "dist"
     outputs:
       subject-name:
         description: "Name of the built artifact"
@@ -49,6 +54,7 @@ jobs:
       BUILD_OUTPUT_DIR: dist
       WORKFLOW_REPOSITORY: gillisandrew/dragonglass-poc
       PLUGIN_DIRECTORY: ${{ inputs.plugin-directory}}
+      BUILD_DIRECTORY: ${{ inputs.build-directory }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v5
@@ -62,7 +68,10 @@ jobs:
           go-version-file: go.mod
       - name: Build plugin
         run: |
-          go run ./cmd/dragonglass-build https://github.com/${{ github.repository }} --ref "${{ github.sha }}" --directory "$PLUGIN_DIRECTORY"
+          go run ./cmd/dragonglass-build https://github.com/${{ github.repository }} \
+          --ref "${{ github.sha }}" \
+          --directory "$PLUGIN_DIRECTORY" \
+          --build-dir "$BUILD_DIRECTORY"
       - name: Resolve plugin metadata
         id: plugin-metadata
         working-directory: ${{ env.BUILD_OUTPUT_DIR }}

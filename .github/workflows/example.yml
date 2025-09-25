@@ -13,6 +13,7 @@ jobs:
     uses: ./.github/workflows/build.yml
     with:
       plugin-directory: example-plugin
+      build-directory: dist
     permissions:
       contents: read
       packages: write

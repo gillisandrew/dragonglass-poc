@@ -15,6 +15,8 @@ import (
 var (
 	ref       string
 	directory string
+	outputDir string
+	buildDir  string
 
 	// Build-time variables (injected via -ldflags)
 	Version   = "dev"
@@ -45,7 +47,7 @@ func main() {
 				finalDirectory = "." // Use root of the path
 			}
 
-			if err := build(context.Background(), path, ref, finalDirectory); err != nil {
+			if err := build(context.Background(), path, ref, finalDirectory, outputDir, buildDir); err != nil {
 				fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 				os.Exit(1)
 			}
@@ -67,6 +69,8 @@ func main() {
 
 	rootCmd.Flags().StringVarP(&ref, "ref", "r", "main", "Git reference (branch, tag, or commit) - only used for remote repositories")
 	rootCmd.Flags().StringVarP(&directory, "directory", "d", "", "Subdirectory to build from (defaults to root of path for both local and remote)")
+	rootCmd.Flags().StringVarP(&outputDir, "output-dir", "o", "dist", "Directory where final built plugin artifacts will be exported")
+	rootCmd.Flags().StringVar(&buildDir, "build-dir", "dist", "Directory where npm run build outputs artifacts (relative to plugin directory)")
 
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
@@ -74,7 +78,7 @@ func main() {
 	}
 }
 
-func build(ctx context.Context, path, ref, directory string) error {
+func build(ctx context.Context, path, ref, directory, outputDir, buildDir string) error {
 	fmt.Println("Building with Dagger")
 	defer dag.Close()
 
@@ -127,14 +131,15 @@ func build(ctx context.Context, path, ref, directory string) error {
 		WithExec([]string{"bash", "-c", "npm sbom --sbom-type application --sbom-format spdx > sbom.spdx.json"})
 		// With([]string{""npm", "sbom", "--sbom-type", "application", "--sbom-format", "spdx", ">", "sbom.spdx.json"}).Terminal()
 
-	builder := installer.WithEnvVariable("NODE_ENV", "production").WithExec([]string{"npm", "run", "build"})
+	builder := installer.WithEnvVariable("NODE_ENV", "production").
+		WithExec([]string{"npm", "run", "build"})
 
-	outputs = outputs.WithFile("main.js", builder.File("dist/main.js")).
-		WithFile("styles.css", builder.File("dist/styles.css")).
+	outputs = outputs.WithFile("main.js", builder.File(filepath.Join(buildDir, "main.js"))).
+		WithFile("styles.css", builder.File(filepath.Join(buildDir, "styles.css"))).
 		WithFile("manifest.json", builder.File("manifest.json")).
 		WithFile("sbom.spdx.json", installer.File("sbom.spdx.json"))
 
-	_, err := outputs.Export(ctx, "dist")
+	_, err := outputs.Export(ctx, outputDir)
 	if err != nil {
 		return err
 	}

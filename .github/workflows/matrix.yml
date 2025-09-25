@@ -17,9 +17,13 @@ jobs:
     strategy:
       matrix:
         plugins:
-          - [callumalpass/tasknotes, d027152, ""]
+          - repository: callumalpass/tasknotes
+            ref: d027152
+            directory: ""
+            build-directory: ""
     uses: ./.github/workflows/build.yml
     with:
-      plugin-repository: ${{ matrix.plugins[0] }}
-      plugin-ref: ${{ matrix.plugins[1] }}
-      plugin-directory: ${{ matrix.plugins[2] }}
+      plugin-repository: ${{ matrix.plugins.repository }}
+      plugin-ref: ${{ matrix.plugins.ref }}
+      plugin-directory: ${{ matrix.plugins.directory }}
+      build-directory: ${{ matrix.plugins.build-directory }}
