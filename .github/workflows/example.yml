@@ -29,11 +29,11 @@ jobs:
       attestations: read
     steps:
       - uses: oras-project/setup-oras@v1
+      - uses: actions/checkout@v5
       - name: Set up Go
         uses: actions/setup-go@v6
         with:
           go-version-file: go.mod
-      - uses: actions/checkout@v4
       - name: Verify provenance attestation
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
