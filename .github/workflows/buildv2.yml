@@ -32,7 +32,7 @@ jobs:
       VENDOR_MEDIA_TYPE_NAMESPACE: vnd.dragonglass.plugin
       SBOM_OUTPUT_FILE: "sbom.spdx.json"
       BUILD_OUTPUT_DIR: "dist"
-      WORKFLOW_REPOSITORY: "https://github.com/gillisandrew/dragonglass-poc"
+      WORKFLOW_REPOSITORY: "gillisandrew/dragonglass-poc"
 
     steps:
       - name: Checkout repository
