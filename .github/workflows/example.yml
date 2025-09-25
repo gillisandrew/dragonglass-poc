@@ -47,7 +47,6 @@ jobs:
 
           # Run dragonglass verify command with verbose output
           if go run ./cmd/dragonglass verify \
-            --github-token="${{ secrets.GITHUB_TOKEN }}" \
             --trusted-builder="https://github.com/gillisandrew/dragonglass-poc/.github/workflows/buildv2.yml@refs/heads/main" \
             --verbose \
             "oci://${{ needs.build.outputs.subject-name }}"; then
