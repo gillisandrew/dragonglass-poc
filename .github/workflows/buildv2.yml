@@ -1,0 +1,164 @@
+name: Build Plugin v2
+on:
+  workflow_call:
+    outputs:
+      subject-name:
+        description: "Name of the built artifact"
+        value: ${{ jobs.build-and-attest.outputs.subject-name }}
+      subject-digest:
+        description: "SHA256 digest of the artifact"
+        value: ${{ jobs.build-and-attest.outputs.subject-digest }}
+      sbom-attestation-url:
+        description: "URL of the SBOM attestation"
+        value: ${{ jobs.build-and-attest.outputs.sbom-attestation-url }}
+      provenance-attestation-url:
+        description: "URL of the provenance attestation"
+        value: ${{ jobs.build-and-attest.outputs.provenance-attestation-url }}
+permissions:
+  contents: read
+  packages: write
+  attestations: write
+  id-token: write
+
+jobs:
+  build-and-attest:
+    runs-on: ubuntu-latest
+    outputs:
+      subject-name: "${{ steps.push-to-ghcr.outputs.subject-name }}:${{ github.run_id }}"
+      subject-digest: ${{ steps.push-to-ghcr.outputs.subject-digest }}
+      sbom-attestation-url: ${{ steps.attest-sbom.outputs.attestation-url }}
+      provenance-attestation-url: ${{ steps.attest-provenance.outputs.attestation-url}}
+    env:
+      VENDOR_MEDIA_TYPE_NAMESPACE: vnd.dragonglass.plugin
+      SBOM_OUTPUT_FILE: "sbom.spdx.json"
+      BUILD_OUTPUT_DIR: "dist"
+      WORKFLOW_REPOSITORY: "https://github.com/gillisandrew/dragonglass-poc"
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+        with:
+          repository: ${{ env.WORKFLOW_REPOSITORY }}
+          ref: main
+
+      - name: Build Plugin
+        uses: dagger/dagger-for-github@v8.2.0
+        with:
+          verb: run
+          args: go run ./cmd/dragonglass "https://github.com/${{ github.repository}}" "${{ github.sha }}"
+      - name: Resolve plugin metadata
+        id: plugin-metadata
+        working-directory: ${{ env.BUILD_OUTPUT_DIR }}
+        run: |
+          # Extract plugin metadata from manifest.json
+          echo "name=$(jq -r '.name' manifest.json)" >> $GITHUB_OUTPUT
+          echo "version=$(jq -r '.version' manifest.json)" >> $GITHUB_OUTPUT
+          echo "id=$(jq -r '.id' manifest.json)" >> $GITHUB_OUTPUT
+          echo "min-app-version=$(jq -r '.minAppVersion' manifest.json)" >> $GITHUB_OUTPUT
+          echo "is-desktop-only=$(jq -r '.isDesktopOnly' manifest.json)" >> $GITHUB_OUTPUT
+          echo "description=$(jq -r '.description' manifest.json)" >> $GITHUB_OUTPUT
+          echo "author=$(jq -r '.author' manifest.json)" >> $GITHUB_OUTPUT
+          echo "author-url=$(jq -r '.authorUrl' manifest.json)" >> $GITHUB_OUTPUT
+
+      - name: Generate annotation file
+        id: generate-annotation
+        working-directory: ${{ env.BUILD_OUTPUT_DIR }}
+        env:
+          PLUGIN_NAME: ${{ steps.plugin-metadata.outputs.name }}
+          PLUGIN_VERSION: ${{ steps.plugin-metadata.outputs.version }}
+          PLUGIN_ID: ${{ steps.plugin-metadata.outputs.id }}
+          PLUGIN_MIN_APP_VERSION: ${{ steps.plugin-metadata.outputs.min-app-version }}
+          PLUGIN_IS_DESKTOP_ONLY: ${{ steps.plugin-metadata.outputs.is-desktop-only }}
+          PLUGIN_DESCRIPTION: ${{ steps.plugin-metadata.outputs.description }}
+          PLUGIN_AUTHOR: ${{ steps.plugin-metadata.outputs.author }}
+          PLUGIN_AUTHOR_URL: ${{ steps.plugin-metadata.outputs.author-url }}
+          PLUGIN_SOURCE_URL: "https://github.com/${{ github.repository }}"
+          PLUGIN_SOURCE_COMMIT: ${{ github.sha }}
+          ANNOTATION_FILE: "${{ github.workspace }}/annotations.json"
+        run: |
+          jq -nc \
+          --arg name "$PLUGIN_NAME" \
+          --arg version "$PLUGIN_VERSION" \
+          --arg id "$PLUGIN_ID" \
+          --arg minAppVersion "$PLUGIN_MIN_APP_VERSION" \
+          --arg isDesktopOnly "$PLUGIN_IS_DESKTOP_ONLY" \
+          --arg description "$PLUGIN_DESCRIPTION" \
+          --arg author "$PLUGIN_AUTHOR" \
+          --arg authorUrl "$PLUGIN_AUTHOR_URL" \
+          --arg sourceUrl "$PLUGIN_SOURCE_URL" \
+          --arg sourceCommit "$PLUGIN_SOURCE_COMMIT" \
+          '
+          {
+            "$manifest": {
+              "org.opencontainers.image.description": $description,
+              "org.opencontainers.image.version": $version,
+              "org.opencontainers.image.url": $authorUrl,
+              "org.opencontainers.image.source": $sourceUrl,
+              "org.opencontainers.image.authors": $author,
+              "org.opencontainers.image.revision": $sourceCommit,
+              "org.opencontainers.image.title": $name,
+              "vnd.obsidian.plugin.id": $id,
+              "vnd.obsidian.plugin.name": $name,
+              "vnd.obsidian.plugin.version": $version,
+              "vnd.obsidian.plugin.minAppVersion": $minAppVersion,
+              "vnd.obsidian.plugin.description": $description,
+              "vnd.obsidian.plugin.author": $author,
+              "vnd.obsidian.plugin.authorUrl": $authorUrl,
+              "vnd.obsidian.plugin.isDesktopOnly": $isDesktopOnly
+            }
+          }' > $ANNOTATION_FILE
+          if [ $? -ne 0 ]; then
+            echo "annotation-file creation failed" >&2
+            exit 1
+          fi
+          echo "annotation-file=$ANNOTATION_FILE" >> $GITHUB_OUTPUT
+      - uses: oras-project/setup-oras@v1
+      - id: push-to-ghcr
+        name: Push artifact to GitHub Container Registry
+        working-directory: ${{ env.BUILD_OUTPUT_DIR }}
+        env:
+          OCI_REGISTRY: ghcr.io
+          OCI_REPOSITORY: ${{ github.repository }}
+          ARTIFACT_NAME: ${{ github.run_id }}
+          GITHUB_TOKEN: ${{ github.token }}
+          ANNOTATION_FILE: ${{ steps.generate-annotation.outputs.annotation-file }}
+          PLUGIN_ID: ${{ steps.plugin-metadata.outputs.id }}
+          SUBJECT_NAME: ghcr.io/${{github.repository}}/${{ steps.plugin-metadata.outputs.id }}
+          PLUGIN_VERSION: ${{ steps.plugin-metadata.outputs.version }}
+        run: |
+
+          echo "Pushing artifact to $SUBJECT_NAME"
+
+          echo "${{ github.token }}" | oras login --username ${{ github.actor }} --password-stdin ghcr.io
+          PUSH_OUTPUT=$(oras push \
+            --annotation-file $ANNOTATION_FILE $SUBJECT_NAME:$ARTIFACT_NAME \
+            --artifact-type application/${{env.VENDOR_MEDIA_TYPE_NAMESPACE}} \
+            ./main.js:application/javascript \
+            ./styles.css:text/css \
+            --format json)
+          if [ $? -ne 0 ]; then
+            echo "oras push failed" >&2
+            echo "$PUSH_OUTPUT" >&2
+            exit 1
+          fi
+          oras tag $SUBJECT_NAME:$ARTIFACT_NAME latest v$PLUGIN_VERSION
+
+          echo "subject-name=$SUBJECT_NAME" >> $GITHUB_OUTPUT
+          echo "subject-digest=$(echo "$PUSH_OUTPUT" | jq -r '.digest')" >> $GITHUB_OUTPUT
+
+      - name: Attest SBOM
+        id: attest-sbom
+        uses: actions/attest-sbom@v3
+        with:
+          sbom-path: "${{ env.BUILD_OUTPUT_DIR }}/${{ env.SBOM_OUTPUT_FILE }}"
+          push-to-registry: true
+          subject-digest: ${{steps.push-to-ghcr.outputs.subject-digest}}
+          subject-name: ${{steps.push-to-ghcr.outputs.subject-name}}
+
+      - name: Attest build provenance
+        id: attest-provenance
+        uses: actions/attest-build-provenance@v3
+        with:
+          push-to-registry: true
+          subject-digest: ${{steps.push-to-ghcr.outputs.subject-digest}}
+          subject-name: ${{steps.push-to-ghcr.outputs.subject-name}}
