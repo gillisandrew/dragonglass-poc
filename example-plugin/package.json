@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "Example plugin demonstrating the build workflow",
   "main": "dist/main.js",
+  "type": "module",
   "scripts": {
     "build": "node esbuild.config.mjs",
     "build:prod": "NODE_ENV=production node esbuild.config.mjs"
