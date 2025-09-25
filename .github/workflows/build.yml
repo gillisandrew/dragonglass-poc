@@ -133,7 +133,7 @@ jobs:
           --arg author "$PLUGIN_AUTHOR" \
           --arg authorUrl "$PLUGIN_AUTHOR_URL" \
           --arg sourceUrl "$PLUGIN_SOURCE_URL" \
-          --arg sourceCommit "$PLUGIN_SOURCE_COMMIT"
+          --arg sourceCommit "$PLUGIN_SOURCE_COMMIT" \
           '
           {
             "$manifest": {
