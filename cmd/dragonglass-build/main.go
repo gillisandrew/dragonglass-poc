@@ -14,6 +14,7 @@ import (
 
 var (
 	ref       string
+	commit    string
 	directory string
 	outputDir string
 	buildDir  string
@@ -33,6 +34,8 @@ func main() {
 		Example: `  # Build from remote repository
   dragonglass-build https://github.com/user/repo.git --ref main --directory plugin-folder
   dragonglass-build https://github.com/user/repo.git --ref main  # uses repository root
+  dragonglass-build https://github.com/user/repo.git --commit abc123def456  # build from specific commit
+  dragonglass-build https://github.com/user/repo.git --commit abc123def456 --directory plugin-folder
   
   # Build from local directory
   dragonglass-build . --directory example-plugin  # build from ./example-plugin subdirectory
@@ -41,13 +44,18 @@ func main() {
 		Run: func(cmd *cobra.Command, args []string) {
 			path := args[0]
 
+			// Validate that both --ref and --commit are not used together
+			if ref != "main" && commit != "" {
+				fmt.Fprintf(os.Stderr, "Warning: Both --ref and --commit specified. Using commit hash (%s) and ignoring ref (%s).\n", commit, ref)
+			}
+
 			// Use directory flag for both local and remote (defaults to root)
 			finalDirectory := directory
 			if finalDirectory == "" {
 				finalDirectory = "." // Use root of the path
 			}
 
-			if err := build(context.Background(), path, ref, finalDirectory, outputDir, buildDir); err != nil {
+			if err := build(context.Background(), path, ref, commit, finalDirectory, outputDir, buildDir); err != nil {
 				fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 				os.Exit(1)
 			}
@@ -67,7 +75,8 @@ func main() {
 
 	rootCmd.AddCommand(versionCmd)
 
-	rootCmd.Flags().StringVarP(&ref, "ref", "r", "main", "Git reference (branch, tag, or commit) - only used for remote repositories")
+	rootCmd.Flags().StringVarP(&ref, "ref", "r", "main", "Git reference (branch or tag) - only used for remote repositories")
+	rootCmd.Flags().StringVarP(&commit, "commit", "c", "", "Specific commit hash to use - only used for remote repositories (takes precedence over --ref)")
 	rootCmd.Flags().StringVarP(&directory, "directory", "d", "", "Subdirectory to build from (defaults to root of path for both local and remote)")
 	rootCmd.Flags().StringVarP(&outputDir, "output-dir", "o", "dist", "Directory where final built plugin artifacts will be exported")
 	rootCmd.Flags().StringVar(&buildDir, "build-dir", "dist", "Directory where npm run build outputs artifacts (relative to plugin directory)")
@@ -78,7 +87,7 @@ func main() {
 	}
 }
 
-func build(ctx context.Context, path, ref, directory, outputDir, buildDir string) error {
+func build(ctx context.Context, path, ref, commit, directory, outputDir, buildDir string) error {
 	fmt.Println("Building with Dagger")
 	defer dag.Close()
 
@@ -89,8 +98,16 @@ func build(ctx context.Context, path, ref, directory, outputDir, buildDir string
 
 	// Determine if path is a remote repository URL or local directory
 	if isRemoteRepository(path) {
-		fmt.Printf("Building from remote repository: %s (ref: %s)\n", path, ref)
-		repo := dag.Git(path).Ref(ref).Tree()
+		// Use commit if provided, otherwise use ref
+		gitRef := ref
+		if commit != "" {
+			gitRef = commit
+			fmt.Printf("Building from remote repository: %s (commit: %s)\n", path, commit)
+		} else {
+			fmt.Printf("Building from remote repository: %s (ref: %s)\n", path, ref)
+		}
+
+		repo := dag.Git(path).Ref(gitRef).Tree()
 
 		if directory == "." {
 			fmt.Printf("Using repository root\n")

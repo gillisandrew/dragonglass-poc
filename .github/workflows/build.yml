@@ -9,14 +9,23 @@ on:
         default: ${{ github.repository }}
       plugin-ref:
         type: string
-        description: "Git reference (branch, tag, SHA) of the plugin to build"
+        description: "Git reference (branch or tag) of the plugin to build"
         required: false
         default: ${{ github.sha }}
+      plugin-commit:
+        type: string
+        description: "Specific commit hash to build (takes precedence over plugin-ref)"
+        required: false
       plugin-directory:
         type: string
         description: "Directory of the plugin to build"
         required: false
       build-directory:
+        type: string
+        description: "Directory where npm run build outputs artifacts (relative to plugin directory)"
+        required: false
+        default: "dist"
+      output-directory:
         type: string
         description: "Directory where final built plugin artifacts will be exported"
         required: false
@@ -51,12 +60,14 @@ jobs:
     env:
       VENDOR_MEDIA_TYPE_NAMESPACE: vnd.dragonglass.plugin
       SBOM_OUTPUT_FILE: sbom.spdx.json
-      BUILD_OUTPUT_DIR: dist
+      BUILD_OUTPUT_DIR: ${{ inputs.output-directory }}
       WORKFLOW_REPOSITORY: gillisandrew/dragonglass-poc
       PLUGIN_DIRECTORY: ${{ inputs.plugin-directory}}
       BUILD_DIRECTORY: ${{ inputs.build-directory }}
+      OUTPUT_DIRECTORY: ${{ inputs.output-directory }}
       PLUGIN_REPOSITORY: ${{ inputs.plugin-repository }}
       PLUGIN_REF: ${{ inputs.plugin-ref }}
+      PLUGIN_COMMIT: ${{ inputs.plugin-commit }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v5
@@ -72,11 +83,35 @@ jobs:
         env:
           PLUGIN_DIRECTORY: ${{ inputs.plugin-directory }}
           BUILD_DIRECTORY: ${{ inputs.build-directory }}
+          OUTPUT_DIRECTORY: ${{ inputs.output-directory }}
+          PLUGIN_COMMIT: ${{ inputs.plugin-commit }}
+          PLUGIN_REF: ${{ inputs.plugin-ref }}
         run: |
-          go run ./cmd/dragonglass-build https://github.com/$PLUGIN_REPOSITORY \
-          --ref "$PLUGIN_REF" \
-          --directory "$PLUGIN_DIRECTORY" \
-          --build-dir "$BUILD_DIRECTORY"
+          # Build command with conditional commit or ref
+          BUILD_CMD="go run ./cmd/dragonglass-build https://github.com/$PLUGIN_REPOSITORY"
+
+          # Add commit or ref flag
+          if [ -n "$PLUGIN_COMMIT" ]; then
+            BUILD_CMD="$BUILD_CMD --commit '$PLUGIN_COMMIT'"
+          else
+            BUILD_CMD="$BUILD_CMD --ref '$PLUGIN_REF'"
+          fi
+
+          # Add directory flags if specified
+          if [ -n "$PLUGIN_DIRECTORY" ]; then
+            BUILD_CMD="$BUILD_CMD --directory '$PLUGIN_DIRECTORY'"
+          fi
+
+          if [ -n "$BUILD_DIRECTORY" ]; then
+            BUILD_CMD="$BUILD_CMD --build-dir '$BUILD_DIRECTORY'"
+          fi
+
+          if [ -n "$OUTPUT_DIRECTORY" ]; then
+            BUILD_CMD="$BUILD_CMD --output-dir '$OUTPUT_DIRECTORY'"
+          fi
+
+          echo "Executing: $BUILD_CMD"
+          eval $BUILD_CMD
       - name: Resolve plugin metadata
         id: plugin-metadata
         working-directory: ${{ env.BUILD_OUTPUT_DIR }}
