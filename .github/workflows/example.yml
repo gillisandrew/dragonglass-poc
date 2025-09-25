@@ -38,7 +38,7 @@ jobs:
           # Verify SLSA provenance
           PROVENANCE_RESULT=$(gh attestation verify "oci://${{ needs.build.outputs.subject-name }}" \
             --repo gillisandrew/dragonglass-poc \
-            --signer-workflow gillisandrew/dragonglass-poc/.github/workflows/build.yml \
+            --signer-workflow gillisandrew/dragonglass-poc/.github/workflows/buildv2.yml \
             --deny-self-hosted-runners \
             --predicate-type https://slsa.dev/provenance/v1 \
             --format json)
@@ -66,7 +66,7 @@ jobs:
           # Verify SBOM attestation
           SBOM_RESULT=$(gh attestation verify "oci://${{ needs.build.outputs.subject-name }}" \
             --repo gillisandrew/dragonglass-poc \
-            --signer-workflow gillisandrew/dragonglass-poc/.github/workflows/build.yml \
+            --signer-workflow gillisandrew/dragonglass-poc/.github/workflows/buildv2.yml \
             --deny-self-hosted-runners \
             --predicate-type https://spdx.dev/Document/v2.3 \
             --format json)
