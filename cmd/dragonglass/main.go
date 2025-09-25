@@ -47,6 +47,23 @@ func init() {
 	rootCmd.PersistentFlags().BoolVarP(&quiet, "quiet", "q", false, "Enable quiet mode (warnings and errors only)")
 }
 
+// getGitHubToken returns the GitHub token from flag or environment variables
+func getGitHubToken(flagToken string) string {
+	if flagToken != "" {
+		return flagToken
+	}
+
+	// Try environment variables as fallback
+	if token := os.Getenv("GITHUB_TOKEN"); token != "" {
+		return token
+	}
+	if token := os.Getenv("GH_TOKEN"); token != "" {
+		return token
+	}
+
+	return ""
+}
+
 func main() {
 	// Initialize logger based on flags
 	var logger *pterm.Logger
@@ -67,7 +84,7 @@ func main() {
 		TrustedBuilder:      trustedBuilder,
 		ConfigPath:          configPath,
 		LockfilePath:        lockfilePath,
-		GitHubToken:         githubToken,
+		GitHubToken:         getGitHubToken(githubToken),
 		Logger:              logger,
 	}
 

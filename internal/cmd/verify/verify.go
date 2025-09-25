@@ -60,17 +60,43 @@ func verifyPlugin(imageRef string, ctx *cmd.CommandContext) error {
 
 	ctx.Logger.Debug("Verification configuration", ctx.Logger.Args("strict", cfg.Verification.StrictMode))
 
+	// Debug: Log token availability
+	if ctx.GitHubToken != "" {
+		ctx.Logger.Debug("GitHub token provided via flag", ctx.Logger.Args("tokenLength", len(ctx.GitHubToken)))
+	} else {
+		ctx.Logger.Debug("No GitHub token provided via flag, will attempt to use stored credentials")
+	}
+
 	// Configure registry client
 	registryOpts := registry.DefaultRegistryOpts()
 	if cfg.Registry.DefaultRegistry != "" {
 		registryOpts = registryOpts.WithRegistryHost(cfg.Registry.DefaultRegistry)
 	}
 
-	// Configure auth if token provided via flag
+	// Configure auth - always try to provide an auth provider
+	var authProvider *auth.AuthClient
 	if ctx.GitHubToken != "" {
+		ctx.Logger.Debug("Configuring registry with provided GitHub token")
 		authOpts := auth.DefaultAuthOpts().WithToken(ctx.GitHubToken)
-		authClient := auth.NewAuthClient(authOpts)
-		registryOpts = registryOpts.WithAuthProvider(authClient)
+		authProvider = auth.NewAuthClient(authOpts)
+	} else {
+		// Try to get token from environment variables as fallback (useful in CI)
+		if ghToken := os.Getenv("GITHUB_TOKEN"); ghToken != "" {
+			ctx.Logger.Debug("Using GITHUB_TOKEN environment variable")
+			authOpts := auth.DefaultAuthOpts().WithToken(ghToken)
+			authProvider = auth.NewAuthClient(authOpts)
+		} else if ghToken := os.Getenv("GH_TOKEN"); ghToken != "" {
+			ctx.Logger.Debug("Using GH_TOKEN environment variable")
+			authOpts := auth.DefaultAuthOpts().WithToken(ghToken)
+			authProvider = auth.NewAuthClient(authOpts)
+		} else {
+			ctx.Logger.Debug("Using default registry authentication (stored credentials)")
+			// Default auth adapter - will try stored credentials
+		}
+	}
+
+	if authProvider != nil {
+		registryOpts = registryOpts.WithAuthProvider(authProvider)
 	}
 
 	// Create registry client
