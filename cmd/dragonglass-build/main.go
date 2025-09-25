@@ -9,21 +9,22 @@ import (
 )
 
 func main() {
-	if len(os.Args) < 3 {
-		fmt.Fprintf(os.Stderr, "Usage: %s <repository> <ref>\n", os.Args[0])
-		fmt.Fprintf(os.Stderr, "Example: %s https://github.com/gillisandrew/dragonglass-poc.git main\n", os.Args[0])
+	if len(os.Args) < 4 {
+		fmt.Fprintf(os.Stderr, "Usage: %s <repository> <ref> <plugin>\n", os.Args[0])
+		fmt.Fprintf(os.Stderr, "Example: %s https://github.com/gillisandrew/dragonglass-poc.git main example-plugin\n", os.Args[0])
 		os.Exit(1)
 	}
 
 	repository := os.Args[1]
 	ref := os.Args[2]
+	plugin := os.Args[3]
 
-	if err := build(context.Background(), repository, ref); err != nil {
+	if err := build(context.Background(), repository, ref, plugin); err != nil {
 		fmt.Println(err)
 	}
 }
 
-func build(ctx context.Context, repository, ref string) error {
+func build(ctx context.Context, repository, ref, plugin string) error {
 	fmt.Println("Building with Dagger")
 	defer dag.Close()
 
@@ -32,7 +33,7 @@ func build(ctx context.Context, repository, ref string) error {
 	repo := dag.Git(repository).Ref(ref).Tree()
 	installer := dag.Container().
 		From("node:22").
-		WithDirectory("/usr/src/plugin", repo.Directory("example-plugin")).
+		WithDirectory("/usr/src/plugin", repo.Directory(plugin)).
 		WithWorkdir("/usr/src/plugin").
 		WithExec([]string{"npm", "ci"}).
 		WithExec([]string{"bash", "-c", "npm sbom --sbom-type application --sbom-format spdx > sbom.spdx.json"})
@@ -40,12 +41,12 @@ func build(ctx context.Context, repository, ref string) error {
 
 	builder := installer.WithEnvVariable("NODE_ENV", "production").WithExec([]string{"npm", "run", "build"})
 
-	outputs = outputs.WithFile("dist/main.js", builder.File("dist/main.js")).
-		WithFile("dist/styles.css", builder.File("dist/styles.css")).
-		WithFile("dist/manifest.json", builder.File("manifest.json")).
-		WithFile("dist/sbom.spdx.json", installer.File("sbom.spdx.json"))
+	outputs = outputs.WithFile("main.js", builder.File("dist/main.js")).
+		WithFile("styles.css", builder.File("dist/styles.css")).
+		WithFile("manifest.json", builder.File("manifest.json")).
+		WithFile("sbom.spdx.json", installer.File("sbom.spdx.json"))
 
-	_, err := outputs.Export(ctx, ".")
+	_, err := outputs.Export(ctx, "dist")
 	if err != nil {
 		return err
 	}

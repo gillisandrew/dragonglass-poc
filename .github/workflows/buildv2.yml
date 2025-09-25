@@ -1,6 +1,11 @@
 name: Build Plugin v2
 on:
   workflow_call:
+    inputs:
+      plugin-directory:
+        type: string
+        description: "Directory of the plugin to build"
+        required: false
     outputs:
       subject-name:
         description: "Name of the built artifact"
@@ -30,10 +35,10 @@ jobs:
       provenance-attestation-url: ${{ steps.attest-provenance.outputs.attestation-url}}
     env:
       VENDOR_MEDIA_TYPE_NAMESPACE: vnd.dragonglass.plugin
-      SBOM_OUTPUT_FILE: "sbom.spdx.json"
-      BUILD_OUTPUT_DIR: "dist"
-      WORKFLOW_REPOSITORY: "gillisandrew/dragonglass-poc"
-
+      SBOM_OUTPUT_FILE: sbom.spdx.json
+      BUILD_OUTPUT_DIR: dist
+      WORKFLOW_REPOSITORY: gillisandrew/dragonglass-poc
+      PLUGIN_DIRECTORY: ${{ inputs.plugin-directory}}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v5
@@ -42,11 +47,13 @@ jobs:
           ref: main
       - name: Set up Go
         uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
       - name: Build Plugin
         uses: dagger/dagger-for-github@v8.2.0
         with:
           verb: run
-          args: go run ./cmd/dragonglass "https://github.com/${{ github.repository}}" "${{ github.sha }}"
+          args: go run ./cmd/dragonglass "https://github.com/${{ github.repository}}" "${{ github.sha }}" "${{ env.PLUGIN_DIRECTORY }}"
       - name: Resolve plugin metadata
         id: plugin-metadata
         working-directory: ${{ env.BUILD_OUTPUT_DIR }}
