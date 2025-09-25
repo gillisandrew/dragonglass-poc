@@ -4,8 +4,8 @@
   "description": "Example plugin demonstrating the build workflow",
   "main": "dist/main.js",
   "scripts": {
-    "build": "node esbuild.config.js",
-    "build:prod": "NODE_ENV=production node esbuild.config.js"
+    "build": "node esbuild.config.mjs",
+    "build:prod": "NODE_ENV=production node esbuild.config.mjs"
   },
   "devDependencies": {
     "esbuild": "^0.19.0",
