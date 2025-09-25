@@ -98,16 +98,15 @@ func build(ctx context.Context, path, ref, commit, directory, outputDir, buildDi
 
 	// Determine if path is a remote repository URL or local directory
 	if isRemoteRepository(path) {
-		// Use commit if provided, otherwise use ref
-		gitRef := ref
+		var repo *dagger.Directory
+
 		if commit != "" {
-			gitRef = commit
 			fmt.Printf("Building from remote repository: %s (commit: %s)\n", path, commit)
+			repo = dag.Git(path).Commit(commit).Tree()
 		} else {
 			fmt.Printf("Building from remote repository: %s (ref: %s)\n", path, ref)
+			repo = dag.Git(path).Ref(ref).Tree()
 		}
-
-		repo := dag.Git(path).Ref(gitRef).Tree()
 
 		if directory == "." {
 			fmt.Printf("Using repository root\n")
