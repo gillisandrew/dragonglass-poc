@@ -1,0 +1,20 @@
+name: Matrix Example
+
+on:
+  workflow_dispatch: {}
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/matrix.yml
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        plugins:
+          - [callumalpass/tasknotes, d027152, ""]
+    uses: ./.github/workflows/build.yml
+    with:
+      plugin-repository: ${{ matrix.plugins[0] }}
+      plugin-ref: ${{ matrix.plugins[1] }}
+      plugin-directory: ${{ matrix.plugins[2] }}

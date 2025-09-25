@@ -1,18 +1,21 @@
-name: Build and Attest Plugin
-
+name: Build Plugin v2
 on:
   workflow_call:
     inputs:
+      plugin-repository:
+        type: string
+        description: "GitHub repository of the plugin to build (e.g. owner/repo)"
+        required: false
+        default: ${{ github.repository }}
+      plugin-ref:
+        type: string
+        description: "Git reference (branch, tag, SHA) of the plugin to build"
+        required: false
+        default: ${{ github.sha }}
       plugin-directory:
-        description: "Working directory containing package.json and build files"
-        required: false
         type: string
-        default: "."
-      esbuild-config:
-        description: "Path to esbuild config file"
+        description: "Directory of the plugin to build"
         required: false
-        type: string
-        default: "esbuild.config.mjs"
     outputs:
       subject-name:
         description: "Name of the built artifact"
@@ -26,7 +29,6 @@ on:
       provenance-attestation-url:
         description: "URL of the provenance attestation"
         value: ${{ jobs.build-and-attest.outputs.provenance-attestation-url }}
-
 permissions:
   contents: read
   packages: write
@@ -37,79 +39,47 @@ jobs:
   build-and-attest:
     runs-on: ubuntu-latest
     outputs:
-      subject-name: "${{ steps.push-to-ghcr.outputs.subject-name }}:${{ steps.artifact-metadata.outputs.name }}"
+      subject-name: "${{ steps.push-to-ghcr.outputs.subject-name }}:${{ github.run_id }}"
       subject-digest: ${{ steps.push-to-ghcr.outputs.subject-digest }}
       sbom-attestation-url: ${{ steps.attest-sbom.outputs.attestation-url }}
       provenance-attestation-url: ${{ steps.attest-provenance.outputs.attestation-url}}
     env:
-      VENDOR_MEDIA_TYPE_NAMESPACE: md.obsidian.plugin.v0
-      PLUGIN_DIR: "${{ inputs.plugin-directory }}"
-      SBOM_OUTPUT_FILE: "${{ github.workspace }}/sbom.spdx.json"
-      BUILD_OUTPUT_DIR: "${{ github.workspace }}/${{ inputs.plugin-directory }}/dist"
-      ESBUILD_CONFIG: "${{ inputs.esbuild-config }}"
-
+      VENDOR_MEDIA_TYPE_NAMESPACE: vnd.dragonglass.plugin
+      SBOM_OUTPUT_FILE: sbom.spdx.json
+      BUILD_OUTPUT_DIR: dist
+      WORKFLOW_REPOSITORY: gillisandrew/dragonglass-poc
+      PLUGIN_DIRECTORY: ${{ inputs.plugin-directory}}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v5
+        with:
+          repository: ${{ env.WORKFLOW_REPOSITORY }}
+          ref: main
+          path: ${{ github.workspace}}
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+      - name: Build plugin
+        run: |
+          go run ./cmd/dragonglass-build https://github.com/${{ github.repository }} --ref "${{ github.sha }}" --directory "$PLUGIN_DIRECTORY"
       - name: Resolve plugin metadata
         id: plugin-metadata
+        working-directory: ${{ env.BUILD_OUTPUT_DIR }}
         run: |
           # Extract plugin metadata from manifest.json
-          echo "name=$(jq -r '.name' ${{ inputs.plugin-directory }}/manifest.json)" >> $GITHUB_OUTPUT
-          echo "version=$(jq -r '.version' ${{ inputs.plugin-directory }}/manifest.json)" >> $GITHUB_OUTPUT
-          echo "id=$(jq -r '.id' ${{ inputs.plugin-directory }}/manifest.json)" >> $GITHUB_OUTPUT
-          echo "min-app-version=$(jq -r '.minAppVersion' ${{ inputs.plugin-directory }}/manifest.json)" >> $GITHUB_OUTPUT
-          echo "is-desktop-only=$(jq -r '.isDesktopOnly' ${{ inputs.plugin-directory }}/manifest.json)" >> $GITHUB_OUTPUT
-          echo "description=$(jq -r '.description' ${{ inputs.plugin-directory }}/manifest.json)" >> $GITHUB_OUTPUT
-          echo "author=$(jq -r '.author' ${{ inputs.plugin-directory }}/manifest.json)" >> $GITHUB_OUTPUT
-          echo "author-url=$(jq -r '.authorUrl' ${{ inputs.plugin-directory }}/manifest.json)" >> $GITHUB_OUTPUT
-
-      - name: Resolve artifact metadata
-        id: artifact-metadata
-        env:
-          GITHUB_RUN_ID: ${{ github.run_id }}
-          PLUGIN_ID: ${{ steps.plugin-metadata.outputs.id }}
-        run: |
-          # Construct artifact name
-          echo "name=$GITHUB_RUN_ID" >> $GITHUB_OUTPUT
-      - name: Setup Node.js
-        uses: actions/setup-node@v5
-        with:
-          node-version: "20"
-          cache: npm
-          cache-dependency-path: |
-            ${{ inputs.plugin-directory }}/package-lock.json
-
-      - name: Install and record dependencies
-        id: install-dependencies
-        working-directory: ${{ inputs.plugin-directory }}
-        env:
-          SBOM_FILE: "${{ github.workspace }}/${{ steps.artifact-metadata.outputs.name }}.spdx.json"
-        run: |
-          npm ci
-
-          npm sbom \
-            --sbom-format spdx \
-            --omit dev \
-            --sbom-type application \
-            --package-lock-only > $SBOM_FILE
-          if [ $? -ne 0 ]; then
-            echo "npm sbom failed" >&2
-            exit 1
-          fi
-
-          echo "sbom-file=$SBOM_FILE" >> $GITHUB_OUTPUT
-          echo "licenses=$(jq -r '.packages[].licenseDeclared | select(. != null)' $SBOM_FILE | sort -u)" >> $GITHUB_OUTPUT
-
-      - name: Build plugin with esbuild
-        working-directory: ${{ inputs.plugin-directory }}
-        env:
-          NODE_ENV: production
-        run: node $ESBUILD_CONFIG
+          echo "name=$(jq -r '.name' manifest.json)" >> $GITHUB_OUTPUT
+          echo "version=$(jq -r '.version' manifest.json)" >> $GITHUB_OUTPUT
+          echo "id=$(jq -r '.id' manifest.json)" >> $GITHUB_OUTPUT
+          echo "min-app-version=$(jq -r '.minAppVersion' manifest.json)" >> $GITHUB_OUTPUT
+          echo "is-desktop-only=$(jq -r '.isDesktopOnly' manifest.json)" >> $GITHUB_OUTPUT
+          echo "description=$(jq -r '.description' manifest.json)" >> $GITHUB_OUTPUT
+          echo "author=$(jq -r '.author' manifest.json)" >> $GITHUB_OUTPUT
+          echo "author-url=$(jq -r '.authorUrl' manifest.json)" >> $GITHUB_OUTPUT
 
       - name: Generate annotation file
         id: generate-annotation
-        working-directory: ${{ inputs.plugin-directory }}
+        working-directory: ${{ env.BUILD_OUTPUT_DIR }}
         env:
           PLUGIN_NAME: ${{ steps.plugin-metadata.outputs.name }}
           PLUGIN_VERSION: ${{ steps.plugin-metadata.outputs.version }}
@@ -166,7 +136,7 @@ jobs:
         env:
           OCI_REGISTRY: ghcr.io
           OCI_REPOSITORY: ${{ github.repository }}
-          ARTIFACT_NAME: ${{ steps.artifact-metadata.outputs.name }}
+          ARTIFACT_NAME: ${{ github.run_id }}
           GITHUB_TOKEN: ${{ github.token }}
           ANNOTATION_FILE: ${{ steps.generate-annotation.outputs.annotation-file }}
           PLUGIN_ID: ${{ steps.plugin-metadata.outputs.id }}
@@ -197,7 +167,7 @@ jobs:
         id: attest-sbom
         uses: actions/attest-sbom@v3
         with:
-          sbom-path: ${{ steps.install-dependencies.outputs.sbom-file }}
+          sbom-path: "${{ env.BUILD_OUTPUT_DIR }}/${{ env.SBOM_OUTPUT_FILE }}"
           push-to-registry: true
           subject-digest: ${{steps.push-to-ghcr.outputs.subject-digest}}
           subject-name: ${{steps.push-to-ghcr.outputs.subject-name}}

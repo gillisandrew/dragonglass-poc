@@ -10,7 +10,7 @@ on:
 jobs:
   build:
     name: Build and Attest Plugin
-    uses: ./.github/workflows/buildv2.yml
+    uses: ./.github/workflows/build.yml
     with:
       plugin-directory: example-plugin
     permissions:
@@ -47,7 +47,7 @@ jobs:
 
           # Run dragonglass verify command with verbose output
           if go run ./cmd/dragonglass verify \
-            --trusted-builder="https://github.com/gillisandrew/dragonglass-poc/.github/workflows/buildv2.yml@refs/heads/main" \
+            --trusted-builder="https://github.com/gillisandrew/dragonglass-poc/.github/workflows/build.yml@refs/heads/main" \
             --verbose \
             "oci://${{ needs.build.outputs.subject-name }}"; then
             
@@ -61,7 +61,7 @@ jobs:
             echo "| **Vulnerability Scan** | ✅ Passed |" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "**Verified Artifact:** \`${{ needs.build.outputs.subject-name }}\`" >> $GITHUB_STEP_SUMMARY
-            echo "**Trusted Builder:** \`https://github.com/gillisandrew/dragonglass-poc/.github/workflows/buildv2.yml@refs/heads/main\`" >> $GITHUB_STEP_SUMMARY
+            echo "**Trusted Builder:** \`https://github.com/gillisandrew/dragonglass-poc/.github/workflows/build.yml@refs/heads/main\`" >> $GITHUB_STEP_SUMMARY
             
           else
             echo "**❌ Plugin Verification Failed**" >> $GITHUB_STEP_SUMMARY
