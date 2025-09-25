@@ -50,12 +50,13 @@ jobs:
         uses: actions/setup-go@v6
         with:
           go-version-file: go.mod
+
       - name: Build Plugin
         uses: dagger/dagger-for-github@v8.2.0
         with:
           verb: run
           workdir: ${{ github.workspace }}
-          args: go run ./cmd/dragonglass "https://github.com/${{ github.repository}}" "${{ github.sha }}" "${{ env.PLUGIN_DIRECTORY }}"
+          args: go run cmd/dragonglass-build "https://github.com/${{ github.repository}}" "${{ github.sha }}" "${{ env.PLUGIN_DIRECTORY }}"
       - name: Resolve plugin metadata
         id: plugin-metadata
         working-directory: ${{ env.BUILD_OUTPUT_DIR }}
