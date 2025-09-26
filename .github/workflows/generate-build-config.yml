@@ -31,11 +31,15 @@ jobs:
   generate-build-config:
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write
       pull-requests: write
+      repository-projects: write
+      actions: read
     steps:
       - name: Checkout repository
         uses: actions/checkout@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Fetch commit hash for refname
         id: fetch-commit
@@ -48,7 +52,7 @@ jobs:
           # Use GitHub API to get commit hash for the ref
           COMMIT_RESPONSE=$(curl -s \
             -H "Accept: application/vnd.github+json" \
-            -H "Authorization: Bearer ${{ github.token }}" \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
             "https://api.github.com/repos/$REPO/commits/$REF")
 
           # Check if the API call was successful
@@ -156,7 +160,7 @@ jobs:
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v7
         with:
-          token: ${{ github.token }}
+          token: ${{ secrets.GITHUB_TOKEN }}
           commit-message: |
             feat: add build config for ${{ inputs.repository }}@${{ inputs.refname }}
 
