@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft-07/schema#",
-  "$id": "https://github.com/gillisandrew/dragonglass-poc/schemas/build.json",
+  "$id": "https://github.com/gillisandrew/dragonglass-poc/schemas/build.v1.json",
   "title": "Dragonglass Plugin Build Configuration",
   "description": "Configuration schema for building plugins with the Dragonglass build system",
   "type": "object",
