@@ -2,7 +2,10 @@
 
 ## Overview
 
-Dragonglass is a secure Obsidian plugin manager that performs verification of provenance and SBOM attestations with vulnerability scanning. It mitigates supply chain attacks and enables continuous verification of plugins through a controlled ecosystem hosted in OCI registries.
+Dragonglass is a secure Obsidian plugin manager that performs verification of provenance
+and SBOM attestations with vulnerability scanning. It mitigates supply chain attacks and
+enables continuous verification of plugins through a controlled ecosystem hosted in OCI
+registries.
 
 ## Problem Statement
 

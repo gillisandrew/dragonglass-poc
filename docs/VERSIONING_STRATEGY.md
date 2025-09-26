@@ -64,7 +64,7 @@ oras pull ghcr.io/gillisandrew/dragonglass:v1.0.0
 
 ### Structure
 
-```
+```text
 dragonglass-poc/
 ├── go.mod (shared internal packages)
 ├── cmd/
@@ -76,7 +76,7 @@ dragonglass-poc/
 │       └── main.go
 ```
 
-### Advantages
+### Strategy 2 Advantages
 
 ✅ True dependency isolation  
 ✅ Independent Go module versioning  
@@ -93,21 +93,21 @@ dragonglass-poc/
 
 ## Strategy 3: Hybrid Approach
 
-### Structure
+### Strategy 3 Structure
 
 Keep current monorepo but add version metadata files:
 
-```
+```text
 cmd/
 ├── dragonglass/
 │   ├── VERSION
 │   └── main.go
 └── dragonglass-build/
-    ├── VERSION  
+    ├── VERSION
     └── main.go
 ```
 
-### Implementation
+### Strategy 3 Implementation
 
 - Single workflow reads version files
 - Builds only if version changed since last release

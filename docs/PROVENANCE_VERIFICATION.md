@@ -69,7 +69,7 @@ sha256sum -c checksums.txt
 
 **Expected output:**
 
-```
+```text
 dragonglass-v0.1.3-darwin-arm64.tar.gz: OK
 dragonglass-v0.1.3-darwin-amd64.tar.gz: OK
 dragonglass-v0.1.3-linux-amd64.tar.gz: OK
@@ -85,13 +85,13 @@ gh attestation verify ${TOOL}-${PLATFORM} --owner gillisandrew
 
 **Expected output:**
 
-```
+```text
 Loaded digest sha256:abc123... for file://dragonglass-darwin-arm64
 Loaded 1 attestation from GitHub API
 ✓ Verification succeeded!
 
 sha256:abc123... was attested by:
-REPO       PREDICATE_TYPE                 WORKFLOW                                   
+REPO       PREDICATE_TYPE                 WORKFLOW
 gillisandrew/dragonglass-poc  https://slsa.dev/provenance/v1  .github/workflows/release-dragonglass.yml@refs/tags/dragonglass/v0.1.3
 ```
 
@@ -192,19 +192,19 @@ chmod +x security-verify.sh
 
 ### Common Issues
 
-**"No attestations found"**
+### No attestations found
 
 - Ensure you're using the correct repository owner: `--owner gillisandrew`
 - Check that the binary filename matches exactly
 - Verify you're authenticated with GitHub: `gh auth status`
 
-**"Verification failed"**
+### Verification failed
 
 - The binary may have been tampered with - do not use it
 - Ensure you downloaded from the official GitHub release
 - Contact repository maintainers if the issue persists
 
-**Network/Corporate Firewall Issues**
+### Network/Corporate Firewall Issues
 
 - Ensure access to:
   - `https://github.com`

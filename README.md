@@ -1,12 +1,17 @@
 # Dragonglass
 
-**A secure plugin manager for Obsidian with supply chain verification**
+## A secure plugin manager for Obsidian with supply chain verification
 
-⚠️ **Experimental Project**: This is a proof-of-concept for secure Obsidian plugin distribution. Use with caution in production environments.
+⚠️ **Experimental Project**: This is a proof-of-concept for secure Obsidian plugin
+distribution. Use with caution in production environments.
 
 ## Overview
 
-Dragonglass is a CLI tool that provides secure plugin management for Obsidian by verifying provenance attestations and Software Bill of Materials (SBOM). It addresses supply chain security concerns by establishing a verified plugin distribution channel using [SLSA](https://slsa.dev/) attestations, [Sigstore](https://www.sigstore.dev/) signatures, and [GitHub Attestations](https://docs.github.com/en/actions/security-guides/using-artifact-attestations-to-establish-provenance-for-builds).
+Dragonglass is a CLI tool that provides secure plugin management for Obsidian by
+verifying provenance attestations and Software Bill of Materials (SBOM). It addresses
+supply chain security concerns by establishing a verified plugin distribution channel
+using [SLSA](https://slsa.dev/) attestations, [Sigstore](https://www.sigstore.dev/)
+signatures, and [GitHub Attestations](https://docs.github.com/en/actions/security-guides/using-artifact-attestations-to-establish-provenance-for-builds).
 
 ## Why Dragonglass?
 
@@ -17,14 +22,18 @@ The current Obsidian plugin ecosystem lacks:
 - **Provenance attestation** - No proof of where and how plugins were built
 - **Software Bill of Materials transparency** - No visibility into plugin dependencies
 
-Dragonglass creates a curated ecosystem where plugins must be built through verified workflows with cryptographic attestations, ensuring users can trust the plugins they install.
+Dragonglass creates a curated ecosystem where plugins must be built through verified
+workflows with cryptographic attestations, ensuring users can trust the plugins they
+install.
 
 ## Features
 
 ### ✅ Current Capabilities
 
-- 🔒 **Provenance Verification** - Validates plugins were built through authorized workflows using [SLSA](https://slsa.dev/) attestations
-- 🛡️ **Supply Chain Security** - Verifies cryptographic signatures using [Sigstore](https://www.sigstore.dev/) and [GitHub Attestations](https://docs.github.com/en/actions/security-guides/using-artifact-attestations-to-establish-provenance-for-builds)
+- 🔒 **Provenance Verification** - Validates plugins were built through authorized
+  workflows using [SLSA](https://slsa.dev/) attestations
+- 🛡️ **Supply Chain Security** - Verifies cryptographic signatures using
+  [Sigstore](https://www.sigstore.dev/) and [GitHub Attestations](https://docs.github.com/en/actions/security-guides/using-artifact-attestations-to-establish-provenance-for-builds)
 - 📋 **SBOM Validation** - Checks for the existence of Software Bill of Materials (SBOM) attestations
 - 🏗️ **Workflow Verification** - Ensures plugins were built using the expected trusted workflow
 - 🏪 **Curated Ecosystem** - Only plugins built through the verified workflow are supported
@@ -66,7 +75,8 @@ make build
 
 ### Security Verification
 
-All Dragonglass CLI releases include cryptographic provenance attestations for supply chain security. Before using any downloaded binary, verify its authenticity:
+All Dragonglass CLI releases include cryptographic provenance attestations for supply
+chain security. Before using any downloaded binary, verify its authenticity:
 
 ```bash
 # Install GitHub CLI if needed
@@ -122,7 +132,8 @@ Authenticate with GitHub using OAuth device flow. Credentials are securely store
 
 ### `dragonglass install <plugin>[@version]`
 
-Install a verified plugin from the curated registry. Downloads the plugin, verifies all attestations, and installs to your Obsidian vault.
+Install a verified plugin from the curated registry. Downloads the plugin, verifies all
+attestations, and installs to your Obsidian vault.
 
 ### `dragonglass list`
 
@@ -187,11 +198,16 @@ Dragonglass implements multiple layers of security verification:
 
 ### Currently Implemented
 
-1. **Build Provenance Verification** - Validates [SLSA](https://slsa.dev/) Level 3 attestations to prove plugins were built by the expected authorized workflow
-2. **Cryptographic Signature Verification** - Verifies all artifacts are properly signed using [Sigstore](https://www.sigstore.dev/) and [GitHub's attestation framework](https://docs.github.com/en/actions/security-guides/using-artifact-attestations-to-establish-provenance-for-builds)
-3. **SBOM Attestation Validation** - Confirms the presence of SPDX-format Software Bill of Materials attestations
-4. **Workflow Identity Verification** - Ensures plugins were built by the trusted workflow identity
-5. **OCI Distribution** - Secure plugin distribution through [OCI-compliant](https://opencontainers.org/) registries using [ORAS](https://oras.land/)
+1. **Build Provenance Verification** - Validates [SLSA](https://slsa.dev/) Level 3
+   attestations to prove plugins were built by the expected authorized workflow
+2. **Cryptographic Signature Verification** - Verifies all artifacts are properly signed
+   using [Sigstore](https://www.sigstore.dev/) and [GitHub's attestation framework](https://docs.github.com/en/actions/security-guides/using-artifact-attestations-to-establish-provenance-for-builds)
+3. **SBOM Attestation Validation** - Confirms the presence of SPDX-format Software Bill
+   of Materials attestations
+4. **Workflow Identity Verification** - Ensures plugins were built by the trusted workflow
+   identity
+5. **OCI Distribution** - Secure plugin distribution through [OCI-compliant](https://opencontainers.org/)
+   registries using [ORAS](https://oras.land/)
 
 ### Planned Security Enhancements
 
@@ -225,7 +241,8 @@ Dragonglass stores configuration in `.obsidian/dragonglass.json` within each vau
 
 - **[SLSA](https://slsa.dev/)** - Supply-chain Levels for Software Artifacts framework
 - **[Sigstore](https://www.sigstore.dev/)** - Software signing and verification infrastructure  
-- **[GitHub Attestations](https://docs.github.com/en/actions/security-guides/using-artifact-attestations-to-establish-provenance-for-builds)** - GitHub's artifact attestation system
+- **[GitHub Attestations](https://docs.github.com/en/actions/security-guides/using-artifact-attestations-to-establish-provenance-for-builds)**
+  - GitHub's artifact attestation system
 - **[ORAS](https://oras.land/)** - OCI Registry As Storage for distributing artifacts
 - **[in-toto](https://in-toto.io/)** - Framework for securing software supply chains
 - **[SPDX](https://spdx.dev/)** - Software Package Data Exchange for SBOMs
@@ -238,4 +255,6 @@ This is an experimental project exploring secure plugin distribution. Contributi
 
 MIT - See [LICENSE](LICENSE) for details.
 
-**Note**: Dragonglass is licensed under MIT, but each curated plugin retains its own license terms. Please check individual plugin repositories for their specific licensing requirements.
+**Note**: Dragonglass is licensed under MIT, but each curated plugin retains its own
+license terms. Please check individual plugin repositories for their specific licensing
+requirements.

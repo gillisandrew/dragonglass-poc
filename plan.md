@@ -2,7 +2,9 @@
 
 ## Overview
 
-This plan breaks down the development of the Dragonglass CLI into small, iterative steps that build upon each other. Each step is designed to be implementable safely while moving the project forward meaningfully.
+This plan breaks down the development of the Dragonglass CLI into small, iterative steps
+that build upon each other. Each step is designed to be implementable safely while moving
+the project forward meaningfully.
 
 ## Development Strategy
 
@@ -115,7 +117,7 @@ This plan breaks down the development of the Dragonglass CLI into small, iterati
 
 ### Prompt 1: Project Bootstrap
 
-```
+```text
 Create a new Go CLI application called 'dragonglass' using Cobra for command structure. Set up the project with:
 
 1. Go modules initialization (go.mod)
@@ -127,11 +129,11 @@ Create a new Go CLI application called 'dragonglass' using Cobra for command str
 7. Include basic error handling and logging setup
 
 The CLI should follow Go best practices and have a clean, maintainable structure. Make sure `dragonglass --help` shows all available commands with descriptions.
-```
+```text
 
 ### Prompt 2: Configuration Management
 
-```
+```text
 Implement configuration file management for the Dragonglass CLI. Build upon the existing CLI structure by adding:
 
 1. A Config struct that represents user preferences (initially just basic settings)
@@ -142,11 +144,11 @@ Implement configuration file management for the Dragonglass CLI. Build upon the 
 6. Unit tests for configuration loading and saving
 
 The configuration should be stored as JSON in `.obsidian/dragonglass-config.json` and include fields for future extensibility. Handle cases where the config file doesn't exist or is malformed gracefully.
-```
+```text
 
 ### Prompt 3: Lockfile Management
 
-```
+```text
 Implement lockfile management building on the existing configuration system. Add:
 
 1. A Lockfile struct with fields for plugin metadata, hashes, and verification timestamps
@@ -157,11 +159,11 @@ Implement lockfile management building on the existing configuration system. Add
 6. Unit tests for lockfile operations including concurrent access scenarios
 
 The lockfile should track installed plugins with enough information to verify and manage them later. Include proper JSON marshaling with omitempty tags for optional fields.
-```
+```text
 
 ### Prompt 4: GitHub App Authentication Structure
 
-```
+```text
 Implement GitHub App native device flow authentication. Extend the existing CLI by adding:
 
 1. GitHub App configuration (app ID, client ID) as constants
@@ -174,11 +176,11 @@ Implement GitHub App native device flow authentication. Extend the existing CLI 
 8. Unit tests for authentication flow (with mocked HTTP responses)
 
 Do not rely on go-gh library - implement the device flow natively. The auth command should guide users through the device flow process with clear instructions and handle GitHub's form-encoded responses.
-```
+```text
 
 ### Prompt 5: Credential Storage
 
-```
+```text
 Add secure credential storage to the existing authentication system. Build upon the GitHub App authentication by adding:
 
 1. OS keychain integration for macOS and Linux (using keyring library)
@@ -190,11 +192,11 @@ Add secure credential storage to the existing authentication system. Build upon 
 7. Unit tests for credential storage and retrieval across platforms
 
 Update the authentication flow to automatically store tokens after successful authentication. Include proper error handling for keychain access failures.
-```
+```text
 
 ### Prompt 6: Basic OCI Registry Client
 
-```
+```text
 Implement OCI registry client functionality. Build on existing authentication by adding:
 
 1. OCI registry client using oras-go library with native authentication
@@ -207,11 +209,11 @@ Implement OCI registry client functionality. Build on existing authentication by
 8. Unit tests with mocked registry responses
 
 The client should use ORAS authentication patterns (auth.StaticCredential) rather than custom HTTP clients for registry authentication. Include logging for debugging registry interactions.
-```
+```text
 
 ### Prompt 7: OCI Manifest Parsing
 
-```
+```text
 Add OCI manifest parsing to extract plugin metadata. Extend the OCI client by adding:
 
 1. OCI manifest annotation parsing for Obsidian plugin metadata
@@ -222,11 +224,11 @@ Add OCI manifest parsing to extract plugin metadata. Extend the OCI client by ad
 6. Unit tests for manifest parsing with various metadata scenarios
 
 The parser should extract plugin information from OCI manifest annotations and validate it matches Obsidian plugin requirements before proceeding with installation.
-```
+```text
 
 ### Prompt 8: Plugin File Extraction
 
-```
+```text
 Implement plugin file extraction from OCI artifacts. Build on the OCI client by adding:
 
 1. OCI layer extraction to temporary directory
@@ -238,11 +240,11 @@ Implement plugin file extraction from OCI artifacts. Build on the OCI client by 
 7. Unit tests for extraction and validation logic
 
 The extractor should verify the extracted files form a valid Obsidian plugin before proceeding with verification steps.
-```
+```text
 
 ### Prompt 9: SLSA Provenance Verification
 
-```
+```text
 Implement SLSA provenance verification with DSSE in-toto attestations. Extend the verification pipeline by adding:
 
 1. Registry query for attestation artifacts using `application/vnd.in-toto+json` media type
@@ -256,11 +258,11 @@ Implement SLSA provenance verification with DSSE in-toto attestations. Extend th
 9. Unit tests for DSSE verification and SLSA v1 provenance parsing with test attestations
 
 The verifier should discover and verify DSSE-wrapped in-toto SLSA attestations with predicate type `https://slsa.dev/provenance/v1`, confirming plugins were built using the authorized workflow.
-```
+```text
 
 ### Prompt 10: SPDX SBOM Parsing
 
-```
+```text
 Implement SPDX SBOM parsing and analysis with DSSE in-toto attestations. Build on the verification pipeline by adding:
 
 1. Registry query for SBOM artifacts using `application/vnd.in-toto+json` media type
@@ -275,11 +277,11 @@ Implement SPDX SBOM parsing and analysis with DSSE in-toto attestations. Build o
 10. Unit tests for DSSE in-toto SBOM attestation parsing with SPDX v2.3 format
 
 The parser should discover and extract comprehensive dependency information from DSSE-wrapped in-toto SBOM attestations with predicate type `https://spdx.dev/Document/v2.3`, preparing it for vulnerability analysis.
-```
+```text
 
 ### Prompt 11: Vulnerability Scanning Integration
 
-```
+```text
 Implement vulnerability scanning using SBOM data. Extend the verification pipeline by adding:
 
 1. Integration with vulnerability databases (NVD, GitHub Security Advisory)
@@ -291,11 +293,11 @@ Implement vulnerability scanning using SBOM data. Extend the verification pipeli
 7. Unit tests for vulnerability detection with known CVEs
 
 The scanner should identify vulnerabilities in plugin dependencies and distinguish between direct plugin vulnerabilities (blocking) and transitive dependency issues (warning).
-```
+```text
 
 ### Prompt 12: Verification Results Presentation
 
-```
+```text
 Implement verification results presentation and user interaction. Build on all verification components by adding:
 
 1. Comprehensive verification result aggregation
@@ -307,11 +309,11 @@ Implement verification results presentation and user interaction. Build on all v
 7. Unit tests for result presentation and user interaction
 
 The presenter should clearly communicate verification results and guide users through security decisions with appropriate warnings and acknowledgment flows.
-```
+```text
 
 ### Prompt 13: Plugin Installation
 
-```
+```text
 Implement plugin installation to Obsidian directories. Build on the complete verification pipeline by adding:
 
 1. .obsidian/plugins/ directory discovery and creation
@@ -323,11 +325,11 @@ Implement plugin installation to Obsidian directories. Build on the complete ver
 7. Unit tests for installation process including error scenarios
 
 The installer should handle the final step of placing verified plugins into Obsidian's plugin directory and maintaining accurate lockfile state.
-```
+```text
 
 ### Prompt 14: List Installed Plugins
 
-```
+```text
 Implement the list command functionality. Build on existing lockfile and plugin management by adding:
 
 1. Lockfile reading and plugin enumeration
@@ -339,11 +341,11 @@ Implement the list command functionality. Build on existing lockfile and plugin 
 7. Unit tests for listing functionality with various plugin states
 
 The list command should provide clear visibility into installed verified plugins and their current status.
-```
+```text
 
 ### Prompt 15: Verify Without Installation
 
-```
+```text
 Implement the verify-only command. Build on the complete verification pipeline by adding:
 
 1. Verification workflow without installation steps
@@ -355,7 +357,7 @@ Implement the verify-only command. Build on the complete verification pipeline b
 7. Unit tests for verify-only functionality
 
 The verify command should run the complete verification pipeline and present results without modifying the system, allowing users to preview verification results before installation.
-```
+```text
 
 ## Integration and Testing Strategy
 
