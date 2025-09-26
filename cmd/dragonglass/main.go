@@ -15,6 +15,8 @@ import (
 	"github.com/gillisandrew/dragonglass-poc/internal/cmd/list"
 	"github.com/gillisandrew/dragonglass-poc/internal/cmd/verify"
 	"github.com/gillisandrew/dragonglass-poc/internal/github"
+	"github.com/gillisandrew/dragonglass-poc/internal/oras"
+	"github.com/gillisandrew/dragonglass-poc/internal/sigstore"
 )
 
 var (
@@ -88,8 +90,27 @@ func createCommandContext() *cmd.CommandContext {
 	// Configure logger to write to stderr to keep stdout clean
 	logger = logger.WithWriter(os.Stderr)
 
-	// Initialize services
+	// Get GitHub token for service initialization
+	token := getGitHubToken(githubToken)
+
+	// Initialize services with dependency injection
 	authService := github.NewService()
+
+	// Create registry service with auth dependency injection
+	registryService, err := oras.NewService("ghcr.io", authService)
+	if err != nil {
+		logger.Error("Failed to initialize registry service", logger.Args("error", err))
+		// Fall back to nil service - commands should handle gracefully
+		registryService = nil
+	}
+
+	// Create attestation service with token for OCI operations
+	attestationService, err := sigstore.NewService(token)
+	if err != nil {
+		logger.Error("Failed to initialize attestation service", logger.Args("error", err))
+		// Fall back to nil service - commands should handle gracefully
+		attestationService = nil
+	}
 
 	// Initialize command context with global flags and services
 	return &cmd.CommandContext{
@@ -97,9 +118,11 @@ func createCommandContext() *cmd.CommandContext {
 		TrustedBuilder:      trustedBuilder,
 		ConfigPath:          configPath,
 		LockfilePath:        lockfilePath,
-		GitHubToken:         getGitHubToken(githubToken),
+		GitHubToken:         token,
 		Logger:              logger,
 		AuthService:         authService,
+		RegistryService:     registryService,
+		AttestationService:  attestationService,
 	}
 }
 

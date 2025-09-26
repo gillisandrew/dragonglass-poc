@@ -12,12 +12,12 @@ import (
 	"strings"
 	"time"
 
+	v1 "github.com/in-toto/attestation/go/predicates/provenance/v1"
+	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/sigstore/sigstore-go/pkg/bundle"
 	"github.com/sigstore/sigstore-go/pkg/fulcio/certificate"
 	"github.com/sigstore/sigstore-go/pkg/root"
 	"github.com/sigstore/sigstore-go/pkg/verify"
-	v1 "github.com/in-toto/attestation/go/predicates/provenance/v1"
-	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
 	"oras.land/oras-go/v2/registry"
 
 	"github.com/gillisandrew/dragonglass-poc/internal/domain"
@@ -117,15 +117,15 @@ func (s *Service) VerifyAttestations(imageRef string, trustedBuilder string) (*d
 
 // AttestationData represents parsed attestation data
 type AttestationData struct {
-	Type                string                    `json:"type"`
-	Bundle              *bundle.Bundle           `json:"bundle,omitempty"`
-	Subject             string                   `json:"subject"`
-	Predicate           map[string]interface{}   `json:"predicate"`
-	PredicateType       string                   `json:"predicateType"`
-	SignatureVerified   bool                     `json:"signatureVerified"`
-	CertificateIdentity *certificate.Summary     `json:"certificateIdentity,omitempty"`
-	Attestations        []ocispec.Descriptor     `json:"attestations,omitempty"`
-	Signatures          []ocispec.Descriptor     `json:"signatures,omitempty"`
+	Type                string                 `json:"type"`
+	Bundle              *bundle.Bundle         `json:"bundle,omitempty"`
+	Subject             string                 `json:"subject"`
+	Predicate           map[string]interface{} `json:"predicate"`
+	PredicateType       string                 `json:"predicateType"`
+	SignatureVerified   bool                   `json:"signatureVerified"`
+	CertificateIdentity *certificate.Summary   `json:"certificateIdentity,omitempty"`
+	Attestations        []ocispec.Descriptor   `json:"attestations,omitempty"`
+	Signatures          []ocispec.Descriptor   `json:"signatures,omitempty"`
 }
 
 // discoverAttestations finds and parses attestations from an OCI artifact
@@ -343,7 +343,7 @@ func (s *Service) verifySBOMAttestation(attestation AttestationData) (*domain.SB
 	// Check for vulnerabilities in packages
 	// This would typically integrate with a vulnerability database
 	// For now, we'll just report that SBOM was found and parsed
-	
+
 	return result, nil
 }
 
@@ -355,8 +355,8 @@ func newSigstoreVerifier() (*verify.Verifier, error) {
 		return nil, fmt.Errorf("failed to fetch trusted root: %w", err)
 	}
 
-	// Create verifier with production trust roots
-	verifier, err := verify.NewVerifier(trustedRoot)
+	// Create verifier with production trust roots and timestamp validation
+	verifier, err := verify.NewVerifier(trustedRoot, verify.WithCurrentTime())
 	if err != nil {
 		return nil, fmt.Errorf("failed to create verifier: %w", err)
 	}

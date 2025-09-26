@@ -2,3 +2,8 @@ dist/
 bin/
 .obsidian/
 .dragonglass/
+
+# Test binaries
+*.test
+dragonglass
+/dragonglass

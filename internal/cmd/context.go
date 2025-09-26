@@ -17,4 +17,6 @@ type CommandContext struct {
 	GitHubToken         string
 	Logger              *pterm.Logger
 	AuthService         domain.AuthService
+	RegistryService     domain.RegistryService
+	AttestationService  domain.AttestationService
 }
