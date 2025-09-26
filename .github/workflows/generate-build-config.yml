@@ -33,13 +33,9 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
-      repository-projects: write
-      actions: read
     steps:
       - name: Checkout repository
         uses: actions/checkout@v5
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Fetch commit hash for refname
         id: fetch-commit
@@ -52,7 +48,7 @@ jobs:
           # Use GitHub API to get commit hash for the ref
           COMMIT_RESPONSE=$(curl -s \
             -H "Accept: application/vnd.github+json" \
-            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Authorization: Bearer ${{ github.token }}" \
             "https://api.github.com/repos/$REPO/commits/$REF")
 
           # Check if the API call was successful
@@ -83,13 +79,46 @@ jobs:
           OWNER=$(echo "$REPO" | cut -d'/' -f1)
           REPO_NAME=$(echo "$REPO" | cut -d'/' -f2)
 
-          # Create directory structure
-          BUILD_DIR="plugins/$OWNER/$REPO_NAME/tags/$REF"
+          # Determine if ref is a tag or branch by checking GitHub API
+          echo "Checking if $REF is a tag or branch..."
+
+          # Check if it's a tag first
+          TAG_RESPONSE=$(curl -s \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer ${{ github.token }}" \
+            "https://api.github.com/repos/$REPO/git/refs/tags/$REF")
+
+          if echo "$TAG_RESPONSE" | jq -e '.ref' >/dev/null 2>&1; then
+            echo "✅ $REF is a tag"
+            REF_TYPE="tags"
+          else
+            # Check if it's a branch
+            BRANCH_RESPONSE=$(curl -s \
+              -H "Accept: application/vnd.github+json" \
+              -H "Authorization: Bearer ${{ github.token }}" \
+              "https://api.github.com/repos/$REPO/git/refs/heads/$REF")
+            
+            if echo "$BRANCH_RESPONSE" | jq -e '.ref' >/dev/null 2>&1; then
+              echo "✅ $REF is a branch"
+              REF_TYPE="heads"
+            else
+              echo "❌ Could not determine if $REF is a tag or branch"
+              echo "Tag response: $TAG_RESPONSE"
+              echo "Branch response: $BRANCH_RESPONSE"
+              exit 1
+            fi
+          fi
+
+          # Create directory structure based on ref type
+          BUILD_DIR="plugins/$OWNER/$REPO_NAME/$REF_TYPE/$REF"
           mkdir -p "$BUILD_DIR"
 
+          echo "Created directory: $BUILD_DIR"
           echo "build-dir=$BUILD_DIR" >> $GITHUB_OUTPUT
+          echo "ref-type=$REF_TYPE" >> $GITHUB_OUTPUT
 
       - name: Generate build.json
+        id: generate-json
         run: |
           COMMIT_HASH="${{ steps.fetch-commit.outputs.commit-hash }}"
           PLUGIN_DIR="${{ inputs.plugin_directory }}"
@@ -116,10 +145,16 @@ jobs:
           JSON_CONTENT="$JSON_CONTENT}"
 
           # Pretty print the JSON and save to file
-          echo "$JSON_CONTENT" | jq '.' > "$BUILD_PATH/build.json"
+          FORMATTED_JSON=$(echo "$JSON_CONTENT" | jq '.')
+          echo "$FORMATTED_JSON" > "$BUILD_PATH/build.json"
 
           echo "Generated build.json:"
           cat "$BUILD_PATH/build.json"
+
+          # Save formatted JSON as output for use in PR body
+          echo "json-content<<EOF" >> $GITHUB_OUTPUT
+          echo "$FORMATTED_JSON" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
 
       - name: Validate generated build.json
         run: |
@@ -160,27 +195,27 @@ jobs:
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v7
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
           commit-message: |
-            feat: add build config for ${{ inputs.repository }}@${{ inputs.refname }}
+            feat: add build config for ${{ inputs.repository }}@${{ inputs.refname }} (${{ steps.setup-dirs.outputs.ref-type }})
 
             - Repository: ${{ inputs.repository }}
-            - Reference: ${{ inputs.refname }}
+            - Reference: ${{ inputs.refname }} (${{ steps.setup-dirs.outputs.ref-type }})
             - Commit: ${{ steps.fetch-commit.outputs.commit-hash }}
-          title: "Add build config for ${{ inputs.repository }}@${{ inputs.refname }}"
+          title: "Add build config for ${{ inputs.repository }}@${{ inputs.refname }} (${{ steps.setup-dirs.outputs.ref-type }})"
           body: |
             ## Generated Build Configuration
 
             This PR adds a new build configuration for:
 
             - **Repository**: `${{ inputs.repository }}`
-            - **Reference**: `${{ inputs.refname }}`
+            - **Reference**: `${{ inputs.refname }}` (${{ steps.setup-dirs.outputs.ref-type }})
             - **Commit Hash**: `${{ steps.fetch-commit.outputs.commit-hash }}`
+            - **GitHub Tree**: https://github.com/${{ inputs.repository }}/tree/${{ steps.fetch-commit.outputs.commit-hash }}
 
             ### Configuration Details
 
             ```json
-            $(cat ${{ steps.setup-dirs.outputs.build-dir }}/build.json)
+            ${{ steps.generate-json.outputs.json-content }}
             ```
 
             ### File Location
@@ -199,11 +234,12 @@ jobs:
           echo "## Build Configuration Generated ✅" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Repository**: ${{ inputs.repository }}" >> $GITHUB_STEP_SUMMARY
-          echo "**Reference**: ${{ inputs.refname }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Reference**: ${{ inputs.refname }} (${{ steps.setup-dirs.outputs.ref-type }})" >> $GITHUB_STEP_SUMMARY
           echo "**Commit Hash**: ${{ steps.fetch-commit.outputs.commit-hash }}" >> $GITHUB_STEP_SUMMARY
+          echo "**GitHub Tree**: https://github.com/${{ inputs.repository }}/tree/${{ steps.fetch-commit.outputs.commit-hash }}" >> $GITHUB_STEP_SUMMARY
           echo "**File Path**: ${{ steps.setup-dirs.outputs.build-dir }}/build.json" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Generated Configuration" >> $GITHUB_STEP_SUMMARY
           echo '```json' >> $GITHUB_STEP_SUMMARY
-          cat "${{ steps.setup-dirs.outputs.build-dir }}/build.json" >> $GITHUB_STEP_SUMMARY
+          echo '${{ steps.generate-json.outputs.json-content }}' >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
