@@ -22,7 +22,7 @@ jobs:
             directory: ""
             build-directory: ""
           - plugin-repository: SilentVoid13/Templater
-            commit: 7b78af918be30b4d3c3402fb3deb74bb440d3844
+            commit: 38d5d3fa799e1eec8f10b137eee8b2cbdc73b534
             directory: ""
             build-directory: ""
     uses: ./.github/workflows/build.yml
