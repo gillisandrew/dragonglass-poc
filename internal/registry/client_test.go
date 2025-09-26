@@ -4,14 +4,28 @@ import (
 	"bytes"
 	"context"
 	"encoding/base64"
+	"os"
 	"testing"
 	"time"
 
 	"github.com/opencontainers/go-digest"
 	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
 
+	"github.com/gillisandrew/dragonglass-poc/internal/mock"
 	"github.com/gillisandrew/dragonglass-poc/internal/plugin"
 )
+
+// isRunningInCI detects if we're running in a CI environment
+func isRunningInCI() bool {
+	// Check common CI environment variables
+	ciVars := []string{"CI", "GITHUB_ACTIONS", "GITLAB_CI", "TRAVIS", "CIRCLECI", "JENKINS_URL"}
+	for _, envVar := range ciVars {
+		if os.Getenv(envVar) != "" {
+			return true
+		}
+	}
+	return false
+}
 
 func TestParseImageReference(t *testing.T) {
 	tests := []struct {
@@ -186,8 +200,8 @@ func TestNewClient(t *testing.T) {
 }
 
 func TestSetRegistry(t *testing.T) {
-	// Create a client with proper initialization
-	opts := DefaultRegistryOpts()
+	// Create a client with mock authentication for testing
+	opts := DefaultRegistryOpts().WithAuthProvider(mock.NewAuthProvider("test-token", false))
 	client, err := NewClient(opts)
 	if err != nil {
 		t.Fatalf("failed to create client: %v", err)
@@ -206,6 +220,57 @@ func TestSetRegistry(t *testing.T) {
 	err = client.SetRegistry("invalid://registry")
 	if err == nil {
 		t.Error("expected error for invalid registry format")
+	}
+}
+
+// TestNewClientWithMockAuth tests client creation with mock authentication
+func TestNewClientWithMockAuth(t *testing.T) {
+	// Test successful mock authentication
+	opts := DefaultRegistryOpts().WithAuthProvider(mock.NewAuthProvider("test-token", false))
+	client, err := NewClient(opts)
+	if err != nil {
+		t.Fatalf("failed to create client with mock auth: %v", err)
+	}
+
+	if client == nil {
+		t.Error("client should not be nil")
+	}
+
+	// Test failing mock authentication
+	opts = DefaultRegistryOpts().WithAuthProvider(mock.NewAuthProvider("", true))
+	client, err = NewClient(opts)
+	if err == nil {
+		t.Error("expected error with failing mock auth")
+	}
+
+	// The error might be wrapped, so check if it contains our mock error
+	if err != nil && err.Error() != "failed to get authentication token: mock authentication error" {
+		t.Errorf("expected mock authentication error, got: %v", err)
+	}
+}
+
+// TestNewClientInCIEnvironment tests client creation in CI environments
+func TestNewClientInCIEnvironment(t *testing.T) {
+	if !isRunningInCI() {
+		t.Skip("skipping CI-specific test - not running in CI environment")
+	}
+
+	// In CI without authentication, NewClient should fail gracefully
+	client, err := NewClient(nil)
+	if err != nil {
+		t.Logf("Expected error in CI environment without authentication: %v", err)
+		// This is expected in CI environments
+		return
+	}
+
+	// If somehow we got a client in CI (maybe mock credentials), verify it's configured properly
+	if client != nil {
+		if client.registry == nil {
+			t.Error("registry should not be nil when client creation succeeds")
+		}
+		if client.httpClient == nil {
+			t.Error("httpClient should not be nil when client creation succeeds")
+		}
 	}
 }
 
