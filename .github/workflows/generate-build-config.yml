@@ -4,11 +4,11 @@ on:
   workflow_dispatch:
     inputs:
       repository:
-        description: "Plugin repository (e.g., SilentVoid13/Templater)"
+        description: "Plugin repository (e.g., owner/repo)"
         required: true
         type: string
       refname:
-        description: "Tag or branch name (e.g., v2.15.2, main)"
+        description: "Tag or branch name (e.g., v1.1.1, main)"
         required: true
         type: string
       plugin_directory:

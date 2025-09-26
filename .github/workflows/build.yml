@@ -216,7 +216,9 @@ jobs:
             exit 1
           fi
           oras tag $SUBJECT_NAME:$ARTIFACT_NAME v$PLUGIN_VERSION
-          oras tag $SUBJECT_NAME:$ARTIFACT_NAME commit-$PLUGIN_COMMIT
+          if [ -n "$PLUGIN_COMMIT" ]; then
+            oras tag $SUBJECT_NAME:$ARTIFACT_NAME commit-$PLUGIN_COMMIT
+          fi
 
           echo "subject-name=$SUBJECT_NAME" >> $GITHUB_OUTPUT
           echo "subject-digest=$(echo "$PUSH_OUTPUT" | jq -r '.digest')" >> $GITHUB_OUTPUT
