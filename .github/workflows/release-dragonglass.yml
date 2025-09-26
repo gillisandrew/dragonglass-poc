@@ -10,6 +10,9 @@ on:
         description: "Version to release (e.g., dragonglass/v1.0.0)"
         required: true
 
+env:
+  REGISTRY: ghcr.io
+
 jobs:
   build:
     name: Build Dragonglass CLI
@@ -75,6 +78,11 @@ jobs:
 
           go build -ldflags="${LDFLAGS}" -o dragonglass-${{ matrix.suffix }} ./cmd/dragonglass
 
+      - name: Attest build provenance
+        uses: actions/attest-build-provenance@v1
+        with:
+          subject-path: dragonglass-${{ matrix.suffix }}
+
       - name: Create tarball
         run: |
           tar -czf dragonglass-${{ steps.version.outputs.version }}-${{ matrix.suffix }}.tar.gz \
@@ -95,6 +103,7 @@ jobs:
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/dragonglass/')
     permissions:
       contents: write
+      packages: write
 
     steps:
       - name: Checkout code
@@ -178,3 +187,121 @@ jobs:
             # Verify installed plugins
             dragonglass verify
             ```
+
+            ### OCI Installation (Alternative)
+
+            You can also install using ORAS from the GitHub Container Registry:
+
+            ```bash
+            # Pull the OCI artifact
+            oras pull ${{ env.REGISTRY }}/gillisandrew/dragonglass:${{ steps.version.outputs.version }}
+
+            # Make executable and install
+            chmod +x dragonglass-*
+            sudo mv dragonglass-<your-platform> /usr/local/bin/dragonglass
+            ```
+
+            ### Verification
+
+            This release includes build provenance attestations and SBOM for supply chain security:
+
+            ```bash
+            # Verify checksums
+            sha256sum -c checksums.txt
+
+            # Verify provenance using GitHub CLI (requires gh CLI)
+            gh attestation verify dragonglass-darwin-arm64 --owner gillisandrew
+
+            # For OCI artifacts, attestations are automatically verified when pulling
+            oras pull ghcr.io/gillisandrew/dragonglass:${{ steps.version.outputs.version }} --verbose
+            ```
+
+  create-oci-artifacts:
+    name: Create OCI Artifacts
+    runs-on: ubuntu-latest
+    needs: build
+    permissions:
+      contents: read
+      packages: write
+      attestations: write
+      id-token: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up ORAS
+        uses: oras-project/setup-oras@v1
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Get version
+        id: version
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            VERSION="${{ github.event.inputs.version }}"
+          else
+            VERSION="${GITHUB_REF#refs/tags/}"
+          fi
+          CLEAN_VERSION="${VERSION#dragonglass/}"
+          echo "version=${CLEAN_VERSION}" >> $GITHUB_OUTPUT
+          echo "full_tag=${VERSION}" >> $GITHUB_OUTPUT
+
+      - name: Log in to registry
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | oras login ${{ env.REGISTRY }} -u ${{ github.actor }} --password-stdin
+
+      - name: Prepare OCI artifacts
+        run: |
+          mkdir -p oci-artifacts
+
+          # Extract and copy all binaries
+          find artifacts -name "*.tar.gz" -exec tar -C oci-artifacts -xzf {} \;
+
+          # Copy documentation
+          cp README.md LICENSE oci-artifacts/
+
+          ls -la oci-artifacts/
+
+      - name: Push OCI artifact
+        id: push
+        run: |
+          cd oci-artifacts
+          DIGEST=$(oras push ${{ env.REGISTRY }}/gillisandrew/dragonglass:${{ steps.version.outputs.version }} \
+            --annotation "org.opencontainers.image.title=Dragonglass CLI" \
+            --annotation "org.opencontainers.image.description=A secure plugin manager for Obsidian with supply chain verification" \
+            --annotation "org.opencontainers.image.version=${{ steps.version.outputs.version }}" \
+            --annotation "org.opencontainers.image.source=https://github.com/gillisandrew/dragonglass-poc" \
+            --annotation "org.opencontainers.image.licenses=MIT" \
+            dragonglass-* README.md LICENSE | grep -o 'sha256:[a-f0-9]\{64\}')
+
+          echo "digest=${DIGEST}" >> $GITHUB_OUTPUT
+
+          # Also tag as latest if this is not a pre-release
+          if [[ ! "${{ steps.version.outputs.version }}" =~ "-" ]]; then
+            oras tag ${{ env.REGISTRY }}/gillisandrew/dragonglass:${{ steps.version.outputs.version }} latest
+          fi
+
+      - name: Generate SBOM
+        uses: anchore/sbom-action@v0
+        with:
+          path: ./
+          format: spdx-json
+          upload-artifact: true
+
+      - name: Attest SBOM
+        uses: actions/attest-sbom@v1
+        with:
+          subject-name: ${{ env.REGISTRY }}/gillisandrew/dragonglass
+          subject-digest: ${{ steps.push.outputs.digest }}
+          sbom-path: ./_manifest/sbom.spdx.json
+          push-to-registry: true
+
+      - name: Attest build provenance for OCI artifact
+        uses: actions/attest-build-provenance@v1
+        with:
+          subject-name: ${{ env.REGISTRY }}/gillisandrew/dragonglass
+          subject-digest: ${{ steps.push.outputs.digest }}
+          push-to-registry: true
