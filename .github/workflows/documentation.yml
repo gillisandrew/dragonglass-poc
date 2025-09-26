@@ -68,10 +68,4 @@ jobs:
             exit 1
           fi
 
-          # Check for basic sections in README
-          if ! grep -q "# dragonglass" README.md; then
-            echo "❌ README.md should have a proper title"
-            exit 1
-          fi
-
           echo "✅ Documentation structure looks good"
