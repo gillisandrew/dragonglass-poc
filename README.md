@@ -1,30 +1,117 @@
-# Dragonglass POC - Reusable Plugin Build Workflow
+# Dragonglass
 
-This repository provides a reusable GitHub Actions workflow for building and attesting esbuild plugins with comprehensive security attestations.
+**A secure plugin manager for Obsidian with supply chain verification**
+
+⚠️ **Experimental Project**: This is a proof-of-concept for secure Obsidian plugin distribution. Use with caution in production environments.
+
+## Overview
+
+Dragonglass is a CLI tool that provides secure plugin management for Obsidian by verifying provenance attestations and Software Bill of Materials (SBOM). It addresses supply chain security concerns by establishing a verified plugin distribution channel using [SLSA](https://slsa.dev/) attestations, [Sigstore](https://www.sigstore.dev/) signatures, and [GitHub Attestations](https://docs.github.com/en/actions/security-guides/using-artifact-attestations-to-establish-provenance-for-builds).
+
+## Why Dragonglass?
+
+The current Obsidian plugin ecosystem lacks:
+- **Supply chain security verification** - No way to verify plugins haven't been tampered with
+- **Continuous vulnerability scanning** - No automated security assessment of dependencies  
+- **Provenance attestation** - No proof of where and how plugins were built
+- **Software Bill of Materials transparency** - No visibility into plugin dependencies
+
+Dragonglass creates a curated ecosystem where plugins must be built through verified workflows with cryptographic attestations, ensuring users can trust the plugins they install.
 
 ## Features
 
-- 🔧 **Automated esbuild bundling** with configurable build commands
-- 📦 **Standardized artifact packaging** (tarball with main.js, styles.css, manifest.json)
-- 🔒 **SBOM generation and attestation** using Anchore SBOM action
-- 🛡️ **SLSA provenance attestation** for supply chain security
-- 🎯 **Flexible configuration** supporting npm, yarn, and pnpm
-- ♻️ **Reusable workflow** for multiple plugin projects
+- 🔒 **Provenance Verification** - Validates plugins were built through authorized workflows using [SLSA](https://slsa.dev/) attestations
+- 🛡️ **Supply Chain Security** - Verifies cryptographic signatures using [Sigstore](https://www.sigstore.dev/) and [GitHub Attestations](https://docs.github.com/en/actions/security-guides/using-artifact-attestations-to-establish-provenance-for-builds)
+- 📋 **SBOM Analysis** - Inspects Software Bill of Materials for dependency transparency
+- 🔍 **Vulnerability Scanning** - Identifies known security issues in plugin dependencies
+- 🏪 **Curated Ecosystem** - Only plugins built through the verified workflow are supported
+- 🔑 **GitHub Integration** - Seamless authentication with GitHub App and OAuth device flow
 
-## Usage
+## Installation
 
-### Basic Usage
+### From GitHub Releases
 
-Create a workflow in your plugin repository that calls this reusable workflow:
+Download the latest binary from the [releases page](https://github.com/gillisandrew/dragonglass-poc/releases) (coming soon).
+
+### Using ORAS
+
+Install using [ORAS](https://oras.land/) to pull directly from the OCI registry:
+
+```bash
+# Pull the latest version
+oras pull ghcr.io/gillisandrew/dragonglass-poc:latest
+
+# Install to your PATH
+chmod +x dragonglass
+sudo mv dragonglass /usr/local/bin/
+```
+
+### Build from Source
+
+```bash
+git clone https://github.com/gillisandrew/dragonglass-poc.git
+cd dragonglass-poc
+make build
+```
+
+## Quick Start
+
+1. **Authenticate with GitHub**:
+   ```bash
+   dragonglass auth
+   ```
+
+2. **Navigate to your Obsidian vault and install a plugin**:
+   ```bash
+   cd /path/to/your/vault
+   dragonglass install callumalpass/tasknotes@3.23.4
+   ```
+
+3. **List installed plugins**:
+   ```bash
+   dragonglass list
+   ```
+
+4. **Verify plugin integrity**:
+   ```bash
+   dragonglass verify
+   ```
+
+## Commands
+
+### `dragonglass auth`
+Authenticate with GitHub using OAuth device flow. Credentials are securely stored in your system keychain.
+
+### `dragonglass install <plugin>[@version]`
+Install a verified plugin from the curated registry. Downloads the plugin, verifies all attestations, and installs to your Obsidian vault.
+
+### `dragonglass list`
+Show all plugins managed by Dragonglass in the current vault, including version and verification status.
+
+### `dragonglass verify`
+Re-verify all installed plugins against their attestations to ensure integrity.
+
+## Supported Plugins
+
+Currently supported plugins in the curated ecosystem:
+
+- **[TaskNotes](https://github.com/callumalpass/tasknotes)** by callumalpass - Task and project management
+- **[Templater](https://github.com/SilentVoid13/Templater)** by SilentVoid13 - Template engine for dynamic content
+
+More plugins will be added as they adopt the verified build workflow. See the `plugins/` directory for the complete list.
+
+## For Plugin Developers
+
+### Using the Build Workflow
+
+To have your plugin included in the Dragonglass ecosystem, use the reusable build workflow in your repository:
 
 ```yaml
-name: Build Plugin
+name: Build and Attest Plugin
 
 on:
   push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
+    tags: ['v*']
 
 jobs:
   build:
@@ -38,214 +125,66 @@ jobs:
       id-token: write
 ```
 
-### Advanced Usage
+### Requirements
 
-For plugins in subdirectories or with custom build configurations:
+Your plugin repository must have:
+- `manifest.json` - Obsidian plugin manifest (present in plugin directory)
+- `package.json` - Node.js build configuration with build scripts
+- Build configuration (e.g., `esbuild.config.mjs`) that supports production builds
 
-```yaml
-name: Build and Release Plugin
+The command `NODE_ENV=production npm run build` must produce:
+- `main.js` - Bundled plugin code
+- `styles.css` - Plugin styles
 
-on:
-  push:
-    tags: [ 'v*' ]
+The build workflow will automatically copy `manifest.json` to the final artifact.
 
-jobs:
-  build:
-    uses: gillisandrew/dragonglass-poc/.github/workflows/build.yml@main
-    with:
-      plugin-directory: 'my-plugin'
-      esbuild-config: 'esbuild.config.js'
-    permissions:
-      contents: read
-      packages: write
-      attestations: write
-      id-token: write
-  
-  release:
-    needs: build
-    runs-on: ubuntu-latest
-    steps:
-      - name: Create release
-        uses: softprops/action-gh-release@v1
-        with:
-          body: |
-            ## 🎉 Plugin Release
-            
-            **OCI Artifact:** `${{ needs.build.outputs.subject-name }}`
-            **SHA256:** `${{ needs.build.outputs.subject-digest }}`
-            
-            ### 🔒 Security Attestations
-            - **SBOM:** [${{ needs.build.outputs.sbom-attestation-url }}](${{ needs.build.outputs.sbom-attestation-url }})
-            - **Provenance:** [${{ needs.build.outputs.provenance-attestation-url }}](${{ needs.build.outputs.provenance-attestation-url }})
-```
+## Security Architecture
 
-## Inputs
+Dragonglass implements multiple layers of security verification:
 
-| Input | Description | Required | Default |
-|-------|-------------|----------|---------|
-| `plugin-directory` | Working directory containing package.json, manifest.json, and build files | ❌ | `.` |
-| `esbuild-config` | Path to esbuild config file (relative to plugin-directory) | ❌ | `esbuild.config.mjs` |
+1. **Build Provenance** - [SLSA](https://slsa.dev/) Level 3 attestations prove plugins were built by authorized workflows
+2. **Cryptographic Signatures** - All artifacts are signed using [Sigstore](https://www.sigstore.dev/) and [GitHub's attestation framework](https://docs.github.com/en/actions/security-guides/using-artifact-attestations-to-establish-provenance-for-builds)
+3. **Dependency Transparency** - SPDX-format SBOMs provide complete dependency visibility
+4. **Vulnerability Assessment** - Automated scanning identifies known security issues
+5. **OCI Distribution** - Plugins are distributed through [OCI-compliant](https://opencontainers.org/) registries using [ORAS](https://oras.land/)
 
-## Outputs
+## Configuration
 
-| Output | Description |
-|--------|-------------|
-| `subject-name` | OCI registry name of the built artifact (e.g., `ghcr.io/owner/repo`) |
-| `subject-digest` | SHA256 digest of the OCI artifact |
-| `sbom-attestation-url` | URL of the SBOM attestation in GitHub |
-| `provenance-attestation-url` | URL of the provenance attestation in GitHub |
-
-## Required Files
-
-Your plugin directory must contain these essential files:
-
-- **`manifest.json`** - Plugin manifest with metadata (id, name, version, etc.)
-- **`package.json`** - Node.js package configuration with build scripts
-- **`esbuild.config.js`** - Build configuration that produces the required outputs
-
-Your esbuild configuration must produce these three files in a `dist/` directory:
-
-- **`main.js`** - The bundled plugin JavaScript
-- **`styles.css`** - The plugin stylesheet  
-- **`manifest.json`** - Copy of the plugin manifest
-
-## Example Project Structure
-
-```
-my-plugin/
-├── src/
-│   ├── main.ts
-│   ├── styles.scss
-│   └── obsidian.d.ts
-├── esbuild.config.js
-├── manifest.json
-├── package.json
-├── tsconfig.json
-└── .github/
-    └── workflows/
-        └── build.yml
-```
-
-### Example esbuild Configuration
-
-```javascript
-// esbuild.config.js
-const esbuild = require('esbuild');
-const { sassPlugin } = require('esbuild-sass-plugin');
-const fs = require('fs');
-const path = require('path');
-
-async function build() {
-  const isProd = process.env.NODE_ENV === 'production';
-  
-  console.log(`Building in ${isProd ? 'production' : 'development'} mode...`);
-
-  // Ensure dist directory exists
-  if (!fs.existsSync('dist')) {
-    fs.mkdirSync('dist', { recursive: true });
-  }
-
-  // Build main.js
-  await esbuild.build({
-    entryPoints: ['src/main.ts'],
-    bundle: true,
-    outfile: 'dist/main.js',
-    format: 'cjs',
-    target: 'es2020',
-    minify: isProd,
-    sourcemap: !isProd,
-    external: ['obsidian'],
-  });
-
-  // Build styles.css
-  await esbuild.build({
-    entryPoints: ['src/styles.scss'],
-    bundle: true,
-    outfile: 'dist/styles.css',
-    minify: isProd,
-    sourcemap: !isProd,
-    plugins: [sassPlugin()],
-  });
-
-  // Copy manifest
-  fs.copyFileSync('manifest.json', 'dist/manifest.json');
-  
-  console.log('✅ Build completed successfully!');
-}
-
-build().catch((error) => {
-  console.error('❌ Build failed:', error);
-  process.exit(1);
-});
-```
-
-### Example manifest.json
+Dragonglass stores configuration in `.obsidian/dragonglass.json` within each vault:
 
 ```json
 {
-  "id": "my-plugin",
-  "name": "My Plugin",
-  "version": "1.0.0",
-  "minAppVersion": "0.15.0",
-  "description": "Description of what my plugin does",
-  "author": "Your Name",
-  "authorUrl": "https://github.com/your-username/my-plugin",
-  "isDesktopOnly": false
+  "version": "1.0",
+  "trustedBuilder": "https://github.com/gillisandrew/dragonglass-poc/.github/workflows/build.yml@refs/heads/main",
+  "annotationNamespace": "md.obsidian.plugin.v0",
+  "plugins": []
 }
 ```
 
-### Example package.json
+## Roadmap
 
-```json
-{
-  "name": "my-plugin",
-  "scripts": {
-    "build": "node esbuild.config.js",
-    "build:prod": "NODE_ENV=production node esbuild.config.js"
-  },
-  "devDependencies": {
-    "esbuild": "^0.19.0",
-    "typescript": "^5.0.0"
-  }
-}
-```
+- [ ] **Pre-built Binaries** - GitHub releases with signed binaries for all platforms
+- [ ] **Package Manager Integration** - Homebrew, apt, and other package managers
+- [ ] **Plugin Discovery** - Browse and search available verified plugins
+- [ ] **Vulnerability Alerts** - Notifications when installed plugins have security issues
+- [ ] **Automatic Updates** - Secure plugin update mechanism with attestation verification
+- [ ] **Community Curation** - Process for plugin developers to request inclusion
 
-## Security Features
+## Related Projects
 
-### SBOM (Software Bill of Materials)
-- Generated using Anchore SBOM action
-- Provides comprehensive dependency tracking
-- Attested and signed using GitHub's attestation framework
+- **[SLSA](https://slsa.dev/)** - Supply-chain Levels for Software Artifacts framework
+- **[Sigstore](https://www.sigstore.dev/)** - Software signing and verification infrastructure  
+- **[GitHub Attestations](https://docs.github.com/en/actions/security-guides/using-artifact-attestations-to-establish-provenance-for-builds)** - GitHub's artifact attestation system
+- **[ORAS](https://oras.land/)** - OCI Registry As Storage for distributing artifacts
+- **[in-toto](https://in-toto.io/)** - Framework for securing software supply chains
+- **[SPDX](https://spdx.dev/)** - Software Package Data Exchange for SBOMs
 
-### SLSA Provenance
-- Level 3 SLSA provenance attestation
-- Verifiable build integrity
-- Supply chain security guarantees
+## Contributing
 
-### Attestation Verification
-
-You can verify the attestations using the GitHub CLI:
-
-```bash
-# Verify SBOM attestation
-gh attestation verify artifact.tar.gz --owner gillisandrew
-
-# Verify provenance attestation  
-gh attestation verify artifact.tar.gz --owner gillisandrew --type provenance
-```
-
-## Permissions Required
-
-The calling workflow must include these permissions:
-
-```yaml
-permissions:
-  contents: read      # Read repository contents
-  packages: write     # Upload artifacts
-  attestations: write # Create attestations
-  id-token: write     # OIDC token for signing
-```
+This is an experimental project exploring secure plugin distribution. Contributions, feedback, and security reviews are welcome!
 
 ## License
 
-MIT
+MIT - See [LICENSE](LICENSE) for details.
+
+**Note**: Dragonglass is licensed under MIT, but each curated plugin retains its own license terms. Please check individual plugin repositories for their specific licensing requirements.
