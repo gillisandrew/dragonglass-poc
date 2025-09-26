@@ -21,13 +21,9 @@ jobs:
         id: changed-files
         run: |
           # Get list of changed build.json files
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            # For pull requests, compare against the base branch
-            CHANGED_FILES=$(git diff --name-only ${{ github.event.pull_request.base.sha }} ${{ github.sha }} | grep 'plugins/.*build\.json$' || true)
-          else
-            # For push events, compare against the previous commit
-            CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD | grep 'plugins/.*build\.json$' || true)
-          fi
+
+          # For push events, compare against the previous commit
+          CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD | grep 'plugins/.*build\.json$' || true)
 
           echo "Changed build.json files:"
           echo "$CHANGED_FILES"
@@ -75,10 +71,10 @@ jobs:
                 COMMIT=$(echo "$BUILD_JSON_CONTENT" | jq -r '.commit // empty')
                 
                 # Extract other optional fields
-                PLUGIN_DIRECTORY=$(echo "$BUILD_JSON_CONTENT" | jq -r '.plugin_directory // empty')
-                BUILD_DIRECTORY=$(echo "$BUILD_JSON_CONTENT" | jq -r '.build_directory // empty')
-                OUTPUT_DIRECTORY=$(echo "$BUILD_JSON_CONTENT" | jq -r '.output_directory // "dist"')
-                PLUGIN_REF=$(echo "$BUILD_JSON_CONTENT" | jq -r '.plugin_ref // empty')
+                PLUGIN_DIRECTORY=$(echo "$BUILD_JSON_CONTENT" | jq -r '.pluginDirectory // empty')
+                BUILD_DIRECTORY=$(echo "$BUILD_JSON_CONTENT" | jq -r '.buildDirectory // empty')
+                OUTPUT_DIRECTORY=$(echo "$BUILD_JSON_CONTENT" | jq -r '.outputDirectory // "dist"')
+                PLUGIN_REF=$(echo "$BUILD_JSON_CONTENT" | jq -r '.pluginRef // empty')
                 
                 # If no commit specified, use the version as ref
                 if [ -z "$COMMIT" ] && [ -z "$PLUGIN_REF" ]; then

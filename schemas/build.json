@@ -1,0 +1,69 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/gillisandrew/dragonglass-poc/schemas/build.json",
+  "title": "Dragonglass Plugin Build Configuration",
+  "description": "Configuration schema for building plugins with the Dragonglass build system",
+  "type": "object",
+  "properties": {
+    "commit": {
+      "type": "string",
+      "description": "Specific commit hash to build from",
+      "pattern": "^[a-f0-9]{40}$",
+      "examples": ["38d5d3fa799e1eec8f10b137eee8b2cbdc73b534"]
+    },
+    "pluginRef": {
+      "type": "string",
+      "description": "Git reference (branch or tag) to build from. Used when commit is not specified.",
+      "examples": ["main", "v2.15.2", "develop"]
+    },
+    "pluginDirectory": {
+      "type": "string",
+      "description": "Directory within the repository containing the plugin source code",
+      "examples": ["", "src", "plugin"]
+    },
+    "buildDirectory": {
+      "type": "string",
+      "description": "Directory where npm run build outputs artifacts (relative to plugin directory)",
+      "examples": ["", "dist", "build", "out"]
+    },
+    "outputDirectory": {
+      "type": "string",
+      "description": "Directory where final built plugin artifacts will be exported",
+      "default": "dist",
+      "examples": ["dist", "build", "output"]
+    }
+  },
+  "additionalProperties": false,
+  "anyOf": [
+    {
+      "required": ["commit"],
+      "description": "Build from a specific commit"
+    },
+    {
+      "required": ["pluginRef"],
+      "description": "Build from a branch or tag reference"
+    },
+    {
+      "properties": {
+        "commit": false,
+        "pluginRef": false
+      },
+      "description": "Build from the version tag (inferred from file path)"
+    }
+  ],
+  "examples": [
+    {
+      "commit": "38d5d3fa799e1eec8f10b137eee8b2cbdc73b534"
+    },
+    {
+      "pluginRef": "v2.15.2",
+      "pluginDirectory": "src",
+      "buildDirectory": "dist",
+      "outputDirectory": "build"
+    },
+    {
+      "commit": "abc123def456789",
+      "outputDirectory": "dist"
+    }
+  ]
+}
