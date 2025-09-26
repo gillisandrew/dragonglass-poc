@@ -3,6 +3,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/pterm/pterm"
@@ -16,6 +17,11 @@ import (
 )
 
 var (
+	// Build-time variables (injected via -ldflags)
+	Version   = "dev"
+	Commit    = "unknown"
+	BuildTime = "unknown"
+
 	// Global flags
 	defaultAnnotationNamespace = "md.obsidian.plugin.v0"
 	defaultTrustedBuilder      = "https://github.com/gillisandrew/dragonglass-poc/.github/workflows/build.yml@refs/heads/main"
@@ -92,6 +98,17 @@ func createCommandContext() *cmd.CommandContext {
 	}
 }
 
+// versionCmd represents the version command
+var versionCmd = &cobra.Command{
+	Use:   "version",
+	Short: "Print version information",
+	Run: func(cmd *cobra.Command, args []string) {
+		fmt.Printf("dragonglass version %s\n", Version)
+		fmt.Printf("Git commit: %s\n", Commit)
+		fmt.Printf("Build time: %s\n", BuildTime)
+	},
+}
+
 func main() {
 	// Parse flags early to get their values
 	rootCmd.ParseFlags(os.Args[1:])
@@ -105,6 +122,7 @@ func main() {
 	rootCmd.AddCommand(install.NewAddCommand(cmdContext))
 	rootCmd.AddCommand(verify.NewVerifyCommand(cmdContext))
 	rootCmd.AddCommand(list.NewListCommand(cmdContext))
+	rootCmd.AddCommand(versionCmd)
 
 	if err := rootCmd.Execute(); err != nil {
 		cmdContext.Logger.Error("Command execution failed", cmdContext.Logger.Args("error", err))
