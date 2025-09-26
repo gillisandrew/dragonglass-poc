@@ -22,6 +22,8 @@ jobs:
   lint:
     name: Lint
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
 
     steps:
       - name: Checkout code
@@ -62,6 +64,8 @@ jobs:
   test:
     name: Test
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
 
     strategy:
       matrix:
@@ -107,6 +111,8 @@ jobs:
   build:
     name: Build
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
 
     steps:
       - name: Checkout code
@@ -135,6 +141,8 @@ jobs:
   cross-compile:
     name: Cross Compile
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
 
     strategy:
       matrix:
@@ -172,7 +180,9 @@ jobs:
   security:
     name: Security Scan
     runs-on: ubuntu-latest
-
+    permissions:
+      contents: read
+      security-events: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -211,6 +221,8 @@ jobs:
   integration:
     name: Integration Tests
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     if: github.event_name == 'pull_request'
 
     steps:
@@ -246,6 +258,8 @@ jobs:
   all-checks:
     name: All Checks
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     needs: [lint, test, build, cross-compile, security]
     if: always()
 
