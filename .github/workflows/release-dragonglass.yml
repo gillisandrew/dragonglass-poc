@@ -1,0 +1,180 @@
+name: Release Dragonglass CLI
+
+on:
+  push:
+    tags:
+      - "dragonglass/v*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to release (e.g., dragonglass/v1.0.0)"
+        required: true
+
+jobs:
+  build:
+    name: Build Dragonglass CLI
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      attestations: write
+      id-token: write
+
+    strategy:
+      matrix:
+        include:
+          - goos: darwin
+            goarch: amd64
+            suffix: darwin-amd64
+          - goos: darwin
+            goarch: arm64
+            suffix: darwin-arm64
+          - goos: linux
+            goarch: amd64
+            suffix: linux-amd64
+          - goos: linux
+            goarch: arm64
+            suffix: linux-arm64
+          - goos: windows
+            goarch: amd64
+            suffix: windows-amd64.exe
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: "go.mod"
+          check-latest: true
+
+      - name: Get version
+        id: version
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            VERSION="${{ github.event.inputs.version }}"
+          else
+            VERSION="${GITHUB_REF#refs/tags/}"
+          fi
+          # Extract just the version part (v1.0.0) from dragonglass/v1.0.0
+          CLEAN_VERSION="${VERSION#dragonglass/}"
+          echo "version=${CLEAN_VERSION}" >> $GITHUB_OUTPUT
+          echo "full_tag=${VERSION}" >> $GITHUB_OUTPUT
+
+      - name: Build CLI binary
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          VERSION: ${{ steps.version.outputs.version }}
+          CGO_ENABLED: 0
+        run: |
+          COMMIT_HASH=$(git rev-parse --short HEAD)
+          BUILD_TIME=$(date -u '+%Y-%m-%d %H:%M:%S UTC')
+          LDFLAGS="-s -w -X 'main.Version=${VERSION}' -X 'main.Commit=${COMMIT_HASH}' -X 'main.BuildTime=${BUILD_TIME}'"
+
+          go build -ldflags="${LDFLAGS}" -o dragonglass-${{ matrix.suffix }} ./cmd/dragonglass
+
+      - name: Create tarball
+        run: |
+          tar -czf dragonglass-${{ steps.version.outputs.version }}-${{ matrix.suffix }}.tar.gz \
+            dragonglass-${{ matrix.suffix }} \
+            README.md \
+            LICENSE
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dragonglass-${{ steps.version.outputs.version }}-${{ matrix.suffix }}
+          path: dragonglass-${{ steps.version.outputs.version }}-${{ matrix.suffix }}.tar.gz
+
+  create-release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/dragonglass/')
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Get version
+        id: version
+        run: |
+          FULL_TAG="${GITHUB_REF#refs/tags/}"
+          VERSION="${FULL_TAG#dragonglass/}"
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          echo "full_tag=${FULL_TAG}" >> $GITHUB_OUTPUT
+
+      - name: Prepare release assets
+        run: |
+          mkdir -p release-assets
+          find artifacts -name "*.tar.gz" -exec cp {} release-assets/ \;
+          ls -la release-assets/
+
+      - name: Generate checksums
+        run: |
+          cd release-assets
+          sha256sum *.tar.gz > checksums.txt
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.full_tag }}
+          name: Dragonglass CLI ${{ steps.version.outputs.version }}
+          draft: false
+          prerelease: ${{ contains(steps.version.outputs.version, '-') }}
+          generate_release_notes: true
+          files: |
+            release-assets/*.tar.gz
+            release-assets/checksums.txt
+          body: |
+            ## Dragonglass CLI ${{ steps.version.outputs.version }}
+
+            Secure Obsidian plugin manager with provenance verification.
+
+            ### Installation
+
+            **macOS (Apple Silicon)**:
+            ```bash
+            curl -L -o dragonglass.tar.gz https://github.com/gillisandrew/dragonglass-poc/releases/download/${{ steps.version.outputs.full_tag }}/dragonglass-${{ steps.version.outputs.version }}-darwin-arm64.tar.gz
+            tar -xzf dragonglass.tar.gz
+            chmod +x dragonglass-darwin-arm64
+            sudo mv dragonglass-darwin-arm64 /usr/local/bin/dragonglass
+            ```
+
+            **macOS (Intel)**:
+            ```bash
+            curl -L -o dragonglass.tar.gz https://github.com/gillisandrew/dragonglass-poc/releases/download/${{ steps.version.outputs.full_tag }}/dragonglass-${{ steps.version.outputs.version }}-darwin-amd64.tar.gz
+            tar -xzf dragonglass.tar.gz
+            chmod +x dragonglass-darwin-amd64
+            sudo mv dragonglass-darwin-amd64 /usr/local/bin/dragonglass
+            ```
+
+            **Linux (x64)**:
+            ```bash
+            curl -L -o dragonglass.tar.gz https://github.com/gillisandrew/dragonglass-poc/releases/download/${{ steps.version.outputs.full_tag }}/dragonglass-${{ steps.version.outputs.version }}-linux-amd64.tar.gz
+            tar -xzf dragonglass.tar.gz
+            chmod +x dragonglass-linux-amd64
+            sudo mv dragonglass-linux-amd64 /usr/local/bin/dragonglass
+            ```
+
+            ### Usage
+
+            ```bash
+            # Install a plugin with verification
+            dragonglass install plugin-name
+
+            # List available plugins
+            dragonglass list
+
+            # Verify installed plugins
+            dragonglass verify
+            ```
