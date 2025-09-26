@@ -33,6 +33,29 @@ jobs:
           echo "$CHANGED_FILES" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
 
+      - name: Install JSON Schema CLI
+        uses: sourcemeta/jsonschema@v11.8.3
+
+      - name: Validate build.json files with JSON Schema
+        run: |
+          CHANGED_FILES="${{ steps.changed-files.outputs.changed-files }}"
+
+          if [ -z "$CHANGED_FILES" ]; then
+            echo "No build.json files changed, skipping validation"
+            exit 0
+          fi
+
+          echo "Validating changed build.json files against JSON Schema..."
+
+          # Validate each changed file
+          while IFS= read -r file; do
+            [ -z "$file" ] && continue
+            echo "Validating $file"
+            jsonschema validate schemas/build.v1.json "$file" --http
+          done <<< "$CHANGED_FILES"
+
+          echo "✅ All changed build.json files passed validation"
+
       - name: Parse build.json files and create matrix
         id: set-matrix
         run: |
