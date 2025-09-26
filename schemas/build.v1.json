@@ -22,35 +22,37 @@
     }
   ],
   "type": "object",
-  "required": [ "version", "commit" ],
+  "required": ["version", "commit"],
   "properties": {
+    "$schema": {
+      "description": "Schema version identifier",
+      "examples": [
+        "https://raw.githubusercontent.com/gillisandrew/dragonglass-poc/refs/heads/main/schemas/build.v1.json#"
+      ],
+      "type": "string",
+      "const": "https://raw.githubusercontent.com/gillisandrew/dragonglass-poc/refs/heads/main/schemas/build.v1.json#"
+    },
     "buildDirectory": {
       "description": "Directory where npm run build outputs artifacts (relative to plugin directory)",
-      "examples": [ "", "dist", "build", "out" ],
+      "examples": ["", "dist", "build", "out"],
       "type": "string"
     },
     "commit": {
       "description": "Specific commit hash to build from",
-      "examples": [ "38d5d3fa799e1eec8f10b137eee8b2cbdc73b534" ],
+      "examples": ["38d5d3fa799e1eec8f10b137eee8b2cbdc73b534"],
       "type": "string",
       "pattern": "^[a-f0-9]{40}$"
     },
     "outputDirectory": {
       "description": "Directory where final built plugin artifacts will be exported",
-      "examples": [ "dist", "build", "output" ],
+      "examples": ["dist", "build", "output"],
       "default": "dist",
       "type": "string"
     },
     "pluginDirectory": {
       "description": "Directory within the repository containing the plugin source code",
-      "examples": [ "", "src", "plugin" ],
+      "examples": ["", "src", "plugin"],
       "type": "string"
-    },
-    "version": {
-      "description": "Schema version for compatibility and evolution tracking",
-      "examples": [ "1" ],
-      "type": "string",
-      "const": "1"
     }
   },
   "additionalProperties": false
