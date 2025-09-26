@@ -6,7 +6,6 @@ import (
 	"github.com/pterm/pterm"
 	"github.com/spf13/cobra"
 
-	"github.com/gillisandrew/dragonglass-poc/internal/auth"
 	"github.com/gillisandrew/dragonglass-poc/internal/cmd"
 	"github.com/gillisandrew/dragonglass-poc/internal/config"
 )
@@ -36,16 +35,11 @@ The authentication uses the same proven flow as the GitHub CLI (gh).`,
 }
 
 func runAuthCommand(ctx *cmd.CommandContext) error {
-	// Configure auth client with token override if provided
-	authOpts := auth.DefaultAuthOpts()
-	if ctx.GitHubToken != "" {
-		authOpts = authOpts.WithToken(ctx.GitHubToken)
-	}
-	authClient := auth.NewAuthClient(authOpts)
+	authService := ctx.AuthService
 
 	// Check if already authenticated
-	if authClient.IsAuthenticated() {
-		username, err := auth.GetAuthenticatedUser()
+	if authService.IsAuthenticated() {
+		username, err := authService.GetUser()
 		if err != nil {
 			// Don't fail completely if we can't get username details
 			username = "authenticated user"
@@ -69,7 +63,7 @@ func runAuthCommand(ctx *cmd.CommandContext) error {
 	}
 
 	// Run device flow authentication
-	return auth.Authenticate()
+	return authService.Authenticate()
 }
 
 func newStatusCommand(ctx *cmd.CommandContext) *cobra.Command {
@@ -78,25 +72,27 @@ func newStatusCommand(ctx *cmd.CommandContext) *cobra.Command {
 		Short: "View authentication status",
 		Long:  `Display current authentication status and user information.`,
 		Run: func(cmd *cobra.Command, args []string) {
-			if !auth.IsAuthenticated() {
-				pterm.Warning.Printfln("Not authenticated with %s", auth.DefaultGitHubHost)
+			authService := ctx.AuthService
+
+			if !authService.IsAuthenticated() {
+				pterm.Warning.Printfln("Not authenticated with GitHub")
 				pterm.Info.Println("Run 'dragonglass auth' to authenticate")
 				return
 			}
 
-			username, err := auth.GetAuthenticatedUser()
+			username, err := authService.GetUser()
 			if err != nil {
 				username = "authenticated user"
 			}
 
-			token, err := auth.GetToken()
+			token, err := authService.GetToken()
 			if err != nil {
 				ctx.Logger.Error("Error getting token", ctx.Logger.Args("error", err))
 				return
 			}
 
 			// Get stored credential details
-			cred, err := auth.GetStoredCredential()
+			cred, err := authService.GetCredential()
 			if err != nil {
 				ctx.Logger.Error("Error getting credential details", ctx.Logger.Args("error", err))
 				return
@@ -108,7 +104,7 @@ func newStatusCommand(ctx *cmd.CommandContext) *cobra.Command {
 			ctx.Logger.Info("Authentication status",
 				ctx.Logger.Args(
 					"status", "authenticated",
-					"host", auth.DefaultGitHubHost,
+					"host", cred.Host,
 					"username", username,
 					"token", maskedToken,
 					"scopes", cred.Scopes,
@@ -127,19 +123,21 @@ func newLogoutCommand(ctx *cmd.CommandContext) *cobra.Command {
 		Short: "Sign out and remove stored credentials",
 		Long:  `Remove stored authentication credentials and sign out.`,
 		Run: func(cmd *cobra.Command, args []string) {
-			if !auth.IsAuthenticated() {
+			authService := ctx.AuthService
+
+			if !authService.IsAuthenticated() {
 				pterm.Warning.Println("Not currently authenticated")
 				return
 			}
 
 			// Get username before logout for confirmation
-			username, _ := auth.GetAuthenticatedUser()
+			username, _ := authService.GetUser()
 			if username == "" {
 				username = "authenticated user"
 			}
 
 			// Clear stored credentials
-			if err := auth.ClearStoredToken(); err != nil {
+			if err := authService.Logout(); err != nil {
 				ctx.Logger.Error("Error clearing credentials", ctx.Logger.Args("error", err))
 				return
 			}

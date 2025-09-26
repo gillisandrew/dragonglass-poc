@@ -122,6 +122,16 @@ type ValidationResult struct {
 	Errors []ValidationError `json:"errors"`
 }
 
+// Credential contains authentication credential details
+type Credential struct {
+	Token     string    `json:"token"`
+	Scopes    string    `json:"scopes"`
+	Username  string    `json:"username,omitempty"`
+	CreatedAt time.Time `json:"created_at"`
+	Source    string    `json:"source"`
+	Host      string    `json:"host"`
+}
+
 // Config represents the application configuration
 type Config struct {
 	// Application settings
@@ -175,6 +185,9 @@ type AuthService interface {
 
 	// GetUser returns the authenticated user information
 	GetUser() (string, error)
+
+	// GetCredential returns detailed credential information
+	GetCredential() (*Credential, error)
 
 	// Logout clears stored credentials
 	Logout() error

@@ -10,6 +10,8 @@ import (
 
 	"github.com/pterm/pterm"
 	"github.com/zalando/go-keyring"
+
+	"github.com/gillisandrew/dragonglass-poc/internal/domain"
 )
 
 // Service implements domain.AuthService using GitHub OAuth
@@ -69,6 +71,24 @@ func (s *Service) GetUser() (string, error) {
 	// Fetch user info from GitHub API
 	token := cred.Token
 	return s.fetchAuthenticatedUser(token)
+}
+
+// GetCredential implements domain.AuthService.GetCredential
+func (s *Service) GetCredential() (*domain.Credential, error) {
+	cred, err := s.getStoredCredential()
+	if err != nil {
+		return nil, fmt.Errorf("not authenticated: %w", err)
+	}
+
+	// Convert internal credential to domain credential
+	return &domain.Credential{
+		Token:     cred.Token,
+		Scopes:    cred.Scopes,
+		Username:  cred.Username,
+		CreatedAt: cred.CreatedAt,
+		Source:    cred.Source,
+		Host:      s.gitHubHost,
+	}, nil
 }
 
 // Logout implements domain.AuthService.Logout

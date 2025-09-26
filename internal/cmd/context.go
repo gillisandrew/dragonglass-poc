@@ -2,7 +2,11 @@
 // ABOUTME: Contains global configuration that can be passed to all commands
 package cmd
 
-import "github.com/pterm/pterm"
+import (
+	"github.com/pterm/pterm"
+
+	"github.com/gillisandrew/dragonglass-poc/internal/domain"
+)
 
 // CommandContext holds global configuration that can be passed to commands
 type CommandContext struct {
@@ -12,4 +16,5 @@ type CommandContext struct {
 	LockfilePath        string
 	GitHubToken         string
 	Logger              *pterm.Logger
+	AuthService         domain.AuthService
 }

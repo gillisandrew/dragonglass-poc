@@ -14,6 +14,7 @@ import (
 	"github.com/gillisandrew/dragonglass-poc/internal/cmd/install"
 	"github.com/gillisandrew/dragonglass-poc/internal/cmd/list"
 	"github.com/gillisandrew/dragonglass-poc/internal/cmd/verify"
+	"github.com/gillisandrew/dragonglass-poc/internal/github"
 )
 
 var (
@@ -87,7 +88,10 @@ func createCommandContext() *cmd.CommandContext {
 	// Configure logger to write to stderr to keep stdout clean
 	logger = logger.WithWriter(os.Stderr)
 
-	// Initialize command context with global flags
+	// Initialize services
+	authService := github.NewService()
+
+	// Initialize command context with global flags and services
 	return &cmd.CommandContext{
 		AnnotationNamespace: annotationNamespace,
 		TrustedBuilder:      trustedBuilder,
@@ -95,6 +99,7 @@ func createCommandContext() *cmd.CommandContext {
 		LockfilePath:        lockfilePath,
 		GitHubToken:         getGitHubToken(githubToken),
 		Logger:              logger,
+		AuthService:         authService,
 	}
 }
 
