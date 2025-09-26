@@ -27,21 +27,16 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v5
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "20"
+      - name: Install JSON Schema CLI
+        uses: sourcemeta/jsonschema@v11.8.3
 
       - name: Validate JSON schemas
         run: |
-          # Install JSON schema validator
-          npm install -g ajv-cli
-
           # Validate all build.json files against schema
           find plugins/ -name "build.json" -type f | while read -r file; do
             echo "Validating $file..."
             if [ -f "schemas/build.v1.json" ]; then
-              ajv validate -s schemas/build.v1.json -d "$file" || {
+              jsonschema validate schemas/build.v1.json "$file" --http || {
                 echo "❌ $file failed validation"
                 exit 1
               }
