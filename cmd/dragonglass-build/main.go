@@ -151,9 +151,16 @@ func build(ctx context.Context, path, ref, commit, directory, outputDir, buildDi
 		WithExec([]string{"npm", "run", "build"})
 
 	outputs = outputs.WithFile("main.js", builder.File(filepath.Join(buildDir, "main.js"))).
-		WithFile("styles.css", builder.File(filepath.Join(buildDir, "styles.css"))).
 		WithFile("manifest.json", builder.File("manifest.json")).
 		WithFile("sbom.spdx.json", installer.File("sbom.spdx.json"))
+
+	// Check if styles.css exists and add it conditionally
+	stylesPath := filepath.Join(buildDir, "styles.css")
+	_, stylesErr := builder.File(stylesPath).Sync(ctx)
+	if stylesErr == nil {
+		// styles.css exists, include it
+		outputs = outputs.WithFile("styles.css", builder.File(stylesPath))
+	}
 
 	_, err := outputs.Export(ctx, outputDir)
 	if err != nil {
