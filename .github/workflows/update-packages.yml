@@ -67,19 +67,31 @@ jobs:
               if [ -f "$file" ]; then
                 BUILD_JSON_CONTENT=$(cat "$file")
                 
-                # Extract commit from build.json
+                # Extract and validate schema version
+                SCHEMA_VERSION=$(echo "$BUILD_JSON_CONTENT" | jq -r '.version // empty')
+                if [ -z "$SCHEMA_VERSION" ]; then
+                  echo "Warning: $file missing required 'version' field, skipping"
+                  continue
+                elif [ "$SCHEMA_VERSION" != "1" ]; then
+                  echo "Warning: $file has unsupported schema version '$SCHEMA_VERSION', skipping"
+                  continue
+                fi
+                
+                # Extract commit from build.json (now required)
                 COMMIT=$(echo "$BUILD_JSON_CONTENT" | jq -r '.commit // empty')
+                
+                if [ -z "$COMMIT" ]; then
+                  echo "Warning: $file missing required 'commit' field, skipping"
+                  continue
+                fi
                 
                 # Extract other optional fields
                 PLUGIN_DIRECTORY=$(echo "$BUILD_JSON_CONTENT" | jq -r '.pluginDirectory // empty')
                 BUILD_DIRECTORY=$(echo "$BUILD_JSON_CONTENT" | jq -r '.buildDirectory // empty')
                 OUTPUT_DIRECTORY=$(echo "$BUILD_JSON_CONTENT" | jq -r '.outputDirectory // "dist"')
-                PLUGIN_REF=$(echo "$BUILD_JSON_CONTENT" | jq -r '.pluginRef // empty')
                 
-                # If no commit specified, use the version as ref
-                if [ -z "$COMMIT" ] && [ -z "$PLUGIN_REF" ]; then
-                  PLUGIN_REF="$VERSION"
-                fi
+                # Use version from file path as pluginRef
+                PLUGIN_REF="$VERSION"
                 
                 # Add comma separator for subsequent entries
                 if [ "$FIRST" = false ]; then
@@ -88,15 +100,9 @@ jobs:
                 FIRST=false
                 
                 # Build matrix entry
-                MATRIX_INCLUDE="$MATRIX_INCLUDE{\"file\":\"$file\",\"owner\":\"$OWNER\",\"repo\":\"$REPO\",\"version\":\"$VERSION\",\"plugin-repository\":\"$OWNER/$REPO\""
+                MATRIX_INCLUDE="$MATRIX_INCLUDE{\"file\":\"$file\",\"owner\":\"$OWNER\",\"repo\":\"$REPO\",\"version\":\"$VERSION\",\"plugin-repository\":\"$OWNER/$REPO\",\"plugin-commit\":\"$COMMIT\",\"plugin-ref\":\"$PLUGIN_REF\""
                 
                 # Add optional fields if they exist
-                if [ -n "$COMMIT" ]; then
-                  MATRIX_INCLUDE="$MATRIX_INCLUDE,\"plugin-commit\":\"$COMMIT\""
-                fi
-                if [ -n "$PLUGIN_REF" ]; then
-                  MATRIX_INCLUDE="$MATRIX_INCLUDE,\"plugin-ref\":\"$PLUGIN_REF\""
-                fi
                 if [ -n "$PLUGIN_DIRECTORY" ]; then
                   MATRIX_INCLUDE="$MATRIX_INCLUDE,\"plugin-directory\":\"$PLUGIN_DIRECTORY\""
                 fi

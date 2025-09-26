@@ -9,10 +9,12 @@ The `build.json` schema defines the configuration format for plugin build specif
 plugins/{owner}/{repo}/tags/{version}/build.json
 ```
 
+The plugin reference (tag/branch) is automatically deduced from the `{version}` part of the file path, while the specific commit hash must be explicitly provided in the build.json file.
+
 ### Schema Location
 
 - **File**: `schemas/build.json`
-- **Schema ID**: `https://github.com/gillisandrew/dragonglass-poc/schemas/build.json`
+- **Schema ID**: `https://raw.githubusercontent.com/gillisandrew/dragonglass-poc/refs/heads/main/schemas/build.v1.json`
 
 ### Usage
 
@@ -20,7 +22,7 @@ You can reference this schema in your `build.json` files:
 
 ```json
 {
-  "$schema": "../../../../../schemas/build.json",
+  "version": "1",
   "commit": "38d5d3fa799e1eec8f10b137eee8b2cbdc73b534"
 }
 ```
@@ -29,19 +31,18 @@ You can reference this schema in your `build.json` files:
 
 | Property | Type | Required | Description |
 |----------|------|----------|-------------|
-| `commit` | string | conditional* | Specific commit hash to build from (40-character hex string) |
-| `pluginRef` | string | conditional* | Git reference (branch or tag) to build from |
+| `version` | string | **yes** | Schema version (must be "1") |
+| `commit` | string | **yes** | Specific commit hash to build from (40-character hex string) |
 | `pluginDirectory` | string | optional | Directory within the repository containing the plugin source |
 | `buildDirectory` | string | optional | Directory where `npm run build` outputs artifacts |
 | `outputDirectory` | string | optional | Directory for final built artifacts (default: "dist") |
-
-*Either `commit` or `pluginRef` must be specified, or both can be omitted to use the version from the file path.
 
 ### Examples
 
 #### Build from specific commit:
 ```json
 {
+  "version": "1",
   "commit": "38d5d3fa799e1eec8f10b137eee8b2cbdc73b534"
 }
 ```
@@ -49,16 +50,19 @@ You can reference this schema in your `build.json` files:
 #### Build from tag with custom directories:
 ```json
 {
-  "pluginRef": "v2.15.2",
+  "version": "1",
+  "commit": "def456abc789123456789012345678901234abcd",
   "pluginDirectory": "src",
   "buildDirectory": "dist",
   "outputDirectory": "build"
 }
 ```
 
-#### Minimal configuration (uses version from path):
+#### Minimal configuration:
 ```json
 {
+  "version": "1",
+  "commit": "abc123def456789012345678901234567890abcde",
   "outputDirectory": "dist"
 }
 ```
@@ -66,9 +70,10 @@ You can reference this schema in your `build.json` files:
 ### Validation
 
 The schema enforces:
-- Commit hashes must be exactly 40 hexadecimal characters
+- **Version field is required** and must be "1"
+- **Commit field is required** and must be exactly 40 hexadecimal characters
 - No additional properties are allowed
-- At least one of `commit` or `pluginRef` should be specified (or neither to use path-inferred version)
+- Plugin reference (tag/branch) is automatically deduced from the file path structure
 
 ### IDE Integration
 

@@ -1,20 +1,21 @@
 {
   "$schema": "https://json-schema.org/draft-07/schema#",
-  "$id": "https://github.com/gillisandrew/dragonglass-poc/schemas/build.v1.json",
+  "$id": "https://raw.githubusercontent.com/gillisandrew/dragonglass-poc/refs/heads/main/schemas/build.v1.json",
   "title": "Dragonglass Plugin Build Configuration",
   "description": "Configuration schema for building plugins with the Dragonglass build system",
   "type": "object",
   "properties": {
+    "version": {
+      "type": "string",
+      "description": "Schema version for compatibility and evolution tracking",
+      "const": "1",
+      "examples": ["1"]
+    },
     "commit": {
       "type": "string",
       "description": "Specific commit hash to build from",
       "pattern": "^[a-f0-9]{40}$",
       "examples": ["38d5d3fa799e1eec8f10b137eee8b2cbdc73b534"]
-    },
-    "pluginRef": {
-      "type": "string",
-      "description": "Git reference (branch or tag) to build from. Used when commit is not specified.",
-      "examples": ["main", "v2.15.2", "develop"]
     },
     "pluginDirectory": {
       "type": "string",
@@ -33,36 +34,23 @@
       "examples": ["dist", "build", "output"]
     }
   },
+  "required": ["version", "commit"],
   "additionalProperties": false,
-  "anyOf": [
-    {
-      "required": ["commit"],
-      "description": "Build from a specific commit"
-    },
-    {
-      "required": ["pluginRef"],
-      "description": "Build from a branch or tag reference"
-    },
-    {
-      "properties": {
-        "commit": false,
-        "pluginRef": false
-      },
-      "description": "Build from the version tag (inferred from file path)"
-    }
-  ],
   "examples": [
     {
+      "version": "1",
       "commit": "38d5d3fa799e1eec8f10b137eee8b2cbdc73b534"
     },
     {
-      "pluginRef": "v2.15.2",
+      "version": "1",
+      "commit": "abc123def456789",
       "pluginDirectory": "src",
       "buildDirectory": "dist",
       "outputDirectory": "build"
     },
     {
-      "commit": "abc123def456789",
+      "version": "1",
+      "commit": "def456abc789123",
       "outputDirectory": "dist"
     }
   ]
