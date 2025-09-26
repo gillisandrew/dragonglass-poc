@@ -238,7 +238,7 @@ func TestNewClientWithMockAuth(t *testing.T) {
 
 	// Test failing mock authentication
 	opts = DefaultRegistryOpts().WithAuthProvider(mock.NewAuthProvider("", true))
-	client, err = NewClient(opts)
+	_, err = NewClient(opts)
 	if err == nil {
 		t.Error("expected error with failing mock auth")
 	}
