@@ -63,6 +63,28 @@ cd dragonglass-poc
 make build
 ```
 
+### Security Verification
+
+All Dragonglass CLI releases include cryptographic provenance attestations for supply chain security. Before using any downloaded binary, verify its authenticity:
+
+```bash
+# Install GitHub CLI if needed
+brew install gh  # macOS
+# or follow instructions at https://cli.github.com/
+
+# Verify the downloaded binary
+gh attestation verify dragonglass-darwin-arm64 --owner gillisandrew
+```
+
+**📖 For detailed verification instructions, see [Provenance Verification Guide](docs/PROVENANCE_VERIFICATION.md)**
+
+This includes:
+- ✅ Build provenance attestation verification
+- ✅ SBOM (Software Bill of Materials) validation  
+- ✅ Checksum integrity verification
+- ✅ OCI artifact attestation verification
+- ✅ Enterprise security practices
+
 ## Quick Start
 
 1. **Authenticate with GitHub**:
