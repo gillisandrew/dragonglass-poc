@@ -1,0 +1,202 @@
+name: Generate Build Config
+
+on:
+  workflow_dispatch:
+    inputs:
+      repository:
+        description: "Plugin repository (e.g., SilentVoid13/Templater)"
+        required: true
+        type: string
+      refname:
+        description: "Tag or branch name (e.g., v2.15.2, main)"
+        required: true
+        type: string
+      plugin_directory:
+        description: "Directory within repo containing plugin source (optional)"
+        required: false
+        type: string
+        default: ""
+      build_directory:
+        description: "Directory where npm run build outputs artifacts (optional)"
+        required: false
+        type: string
+        default: ""
+      output_directory:
+        description: "Directory for final built artifacts (optional)"
+        required: false
+        type: string
+        default: "dist"
+
+jobs:
+  generate-build-config:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Fetch commit hash for refname
+        id: fetch-commit
+        run: |
+          REPO="${{ inputs.repository }}"
+          REF="${{ inputs.refname }}"
+
+          echo "Fetching commit hash for $REPO at ref $REF"
+
+          # Use GitHub API to get commit hash for the ref
+          COMMIT_RESPONSE=$(curl -s \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer ${{ github.token }}" \
+            "https://api.github.com/repos/$REPO/commits/$REF")
+
+          # Check if the API call was successful
+          if echo "$COMMIT_RESPONSE" | jq -e '.message' >/dev/null; then
+            ERROR_MESSAGE=$(echo "$COMMIT_RESPONSE" | jq -r '.message')
+            echo "Error: $ERROR_MESSAGE"
+            exit 1
+          fi
+
+          # Extract commit hash
+          COMMIT_HASH=$(echo "$COMMIT_RESPONSE" | jq -r '.sha')
+
+          if [ -z "$COMMIT_HASH" ] || [ "$COMMIT_HASH" = "null" ]; then
+            echo "Error: Could not retrieve commit hash"
+            exit 1
+          fi
+
+          echo "Found commit hash: $COMMIT_HASH"
+          echo "commit-hash=$COMMIT_HASH" >> $GITHUB_OUTPUT
+
+      - name: Create directory structure
+        id: setup-dirs
+        run: |
+          REPO="${{ inputs.repository }}"
+          REF="${{ inputs.refname }}"
+
+          # Extract owner and repo name
+          OWNER=$(echo "$REPO" | cut -d'/' -f1)
+          REPO_NAME=$(echo "$REPO" | cut -d'/' -f2)
+
+          # Create directory structure
+          BUILD_DIR="plugins/$OWNER/$REPO_NAME/tags/$REF"
+          mkdir -p "$BUILD_DIR"
+
+          echo "build-dir=$BUILD_DIR" >> $GITHUB_OUTPUT
+
+      - name: Generate build.json
+        run: |
+          COMMIT_HASH="${{ steps.fetch-commit.outputs.commit-hash }}"
+          PLUGIN_DIR="${{ inputs.plugin_directory }}"
+          BUILD_DIR_INPUT="${{ inputs.build_directory }}"
+          OUTPUT_DIR="${{ inputs.output_directory }}"
+          BUILD_PATH="${{ steps.setup-dirs.outputs.build-dir }}"
+
+          # Build JSON object
+          JSON_CONTENT="{\"version\":\"1\",\"commit\":\"$COMMIT_HASH\""
+
+          # Add optional fields if provided
+          if [ -n "$PLUGIN_DIR" ]; then
+            JSON_CONTENT="$JSON_CONTENT,\"pluginDirectory\":\"$PLUGIN_DIR\""
+          fi
+
+          if [ -n "$BUILD_DIR_INPUT" ]; then
+            JSON_CONTENT="$JSON_CONTENT,\"buildDirectory\":\"$BUILD_DIR_INPUT\""
+          fi
+
+          if [ -n "$OUTPUT_DIR" ] && [ "$OUTPUT_DIR" != "dist" ]; then
+            JSON_CONTENT="$JSON_CONTENT,\"outputDirectory\":\"$OUTPUT_DIR\""
+          fi
+
+          JSON_CONTENT="$JSON_CONTENT}"
+
+          # Pretty print the JSON and save to file
+          echo "$JSON_CONTENT" | jq '.' > "$BUILD_PATH/build.json"
+
+          echo "Generated build.json:"
+          cat "$BUILD_PATH/build.json"
+
+      - name: Validate generated build.json
+        run: |
+          BUILD_FILE="${{ steps.setup-dirs.outputs.build-dir }}/build.json"
+
+          # Basic validation
+          if ! jq empty "$BUILD_FILE" 2>/dev/null; then
+            echo "Error: Generated build.json is not valid JSON"
+            exit 1
+          fi
+
+          # Check required fields
+          VERSION=$(jq -r '.version // empty' "$BUILD_FILE")
+          COMMIT=$(jq -r '.commit // empty' "$BUILD_FILE")
+
+          if [ -z "$VERSION" ]; then
+            echo "Error: Missing required 'version' field"
+            exit 1
+          fi
+
+          if [ "$VERSION" != "1" ]; then
+            echo "Error: Invalid version '$VERSION', expected '1'"
+            exit 1
+          fi
+
+          if [ -z "$COMMIT" ]; then
+            echo "Error: Missing required 'commit' field"
+            exit 1
+          fi
+
+          if ! echo "$COMMIT" | grep -qE '^[a-f0-9]{40}$'; then
+            echo "Error: Invalid commit hash format '$COMMIT'"
+            exit 1
+          fi
+
+          echo "✅ build.json validation passed"
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ github.token }}
+          commit-message: |
+            feat: add build config for ${{ inputs.repository }}@${{ inputs.refname }}
+
+            - Repository: ${{ inputs.repository }}
+            - Reference: ${{ inputs.refname }}
+            - Commit: ${{ steps.fetch-commit.outputs.commit-hash }}
+          title: "Add build config for ${{ inputs.repository }}@${{ inputs.refname }}"
+          body: |
+            ## Generated Build Configuration
+
+            This PR adds a new build configuration for:
+
+            - **Repository**: `${{ inputs.repository }}`
+            - **Reference**: `${{ inputs.refname }}`
+            - **Commit Hash**: `${{ steps.fetch-commit.outputs.commit-hash }}`
+
+            ### Configuration Details
+
+            ```json
+            $(cat ${{ steps.setup-dirs.outputs.build-dir }}/build.json)
+            ```
+
+            ### File Location
+
+            `${{ steps.setup-dirs.outputs.build-dir }}/build.json`
+
+            ---
+
+            *This PR was automatically generated by the "Generate Build Config" workflow.*
+          branch: build-config/${{ inputs.repository }}/${{ inputs.refname }}
+          branch-suffix: timestamp
+          delete-branch: true
+
+      - name: Summary
+        run: |
+          echo "## Build Configuration Generated ✅" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Repository**: ${{ inputs.repository }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Reference**: ${{ inputs.refname }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit Hash**: ${{ steps.fetch-commit.outputs.commit-hash }}" >> $GITHUB_STEP_SUMMARY
+          echo "**File Path**: ${{ steps.setup-dirs.outputs.build-dir }}/build.json" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Generated Configuration" >> $GITHUB_STEP_SUMMARY
+          echo '```json' >> $GITHUB_STEP_SUMMARY
+          cat "${{ steps.setup-dirs.outputs.build-dir }}/build.json" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
