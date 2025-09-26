@@ -145,10 +145,7 @@ Re-verify all installed plugins against their attestations to ensure integrity.
 
 ## Supported Plugins
 
-Currently supported plugins in the curated ecosystem:
-
-- **[TaskNotes](https://github.com/callumalpass/tasknotes)** by callumalpass - Task and project management
-- **[Templater](https://github.com/SilentVoid13/Templater)** by SilentVoid13 - Template engine for dynamic content
+See the plugins directory for the complete list.
 
 More plugins will be added as they adopt the verified build workflow. See the `plugins/` directory for the complete list.
 
