@@ -18,6 +18,16 @@
 - `dragonglass/v1.0.0` - Plugin manager releases
 - `dragonglass-build/v1.0.0` - Build tool releases
 
+**Distribution Channels:**
+- GitHub Releases (tarballs + checksums)
+- GitHub Container Registry (OCI artifacts via ORAS)
+
+**Security Features:**
+- Build provenance attestation for all binaries
+- SBOM (Software Bill of Materials) generation
+- Supply chain verification via Sigstore
+- Attestations pushed to registry for OCI artifacts
+
 **Usage:**
 ```bash
 # Release plugin manager
@@ -27,6 +37,15 @@ git push origin dragonglass/v1.0.0
 # Release build tool  
 git tag dragonglass-build/v1.0.0
 git push origin dragonglass-build/v1.0.0
+```
+
+**Installation Options:**
+```bash
+# Traditional download from GitHub Releases
+curl -L -o dragonglass.tar.gz https://github.com/.../releases/download/...
+
+# OCI artifact via ORAS from GHCR
+oras pull ghcr.io/gillisandrew/dragonglass:v1.0.0
 ```
 
 **Workflows:** Separate workflow files trigger on different tag patterns
