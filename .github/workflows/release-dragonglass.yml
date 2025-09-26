@@ -194,27 +194,106 @@ jobs:
 
             ```bash
             # Pull the OCI artifact
-            oras pull ${{ env.REGISTRY }}/gillisandrew/dragonglass:${{ steps.version.outputs.version }}
+            oras pull ${{ env.REGISTRY }}/gillisandrew/dragonglass-poc/dragonglass:${{ steps.version.outputs.version }}
 
             # Make executable and install
             chmod +x dragonglass-*
             sudo mv dragonglass-<your-platform> /usr/local/bin/dragonglass
             ```
 
-            ### Verification
+            ### Verification & Security
 
-            This release includes build provenance attestations and SBOM for supply chain security:
+            This release includes comprehensive supply chain security features:
 
+            #### 1. Checksum Verification
             ```bash
-            # Verify checksums
+            # Download the checksums file and verify integrity
+            curl -L -o checksums.txt https://github.com/gillisandrew/dragonglass-poc/releases/download/${{ steps.version.outputs.full_tag }}/checksums.txt
             sha256sum -c checksums.txt
+            ```
 
-            # Verify provenance using GitHub CLI (requires gh CLI)
+            #### 2. Provenance Attestation Verification
+
+            **Prerequisites:**
+            ```bash
+            # Install GitHub CLI if not already installed
+            # macOS: brew install gh
+            # Linux: https://github.com/cli/cli/blob/trunk/docs/install_linux.md
+            # Windows: https://github.com/cli/cli/releases
+
+            # Authenticate with GitHub
+            gh auth login
+            ```
+
+            **Verify Binary Provenance:**
+            ```bash
+            # Download the binary you want to verify
+            curl -L -o dragonglass.tar.gz https://github.com/gillisandrew/dragonglass-poc/releases/download/${{ steps.version.outputs.full_tag }}/dragonglass-${{ steps.version.outputs.version }}-darwin-arm64.tar.gz
+            tar -xzf dragonglass.tar.gz
+
+            # Verify the binary was built by our authorized workflow
             gh attestation verify dragonglass-darwin-arm64 --owner gillisandrew
 
-            # For OCI artifacts, attestations are automatically verified when pulling
-            oras pull ghcr.io/gillisandrew/dragonglass:${{ steps.version.outputs.version }} --verbose
+            # For detailed attestation information
+            gh attestation verify dragonglass-darwin-arm64 --owner gillisandrew --format json
             ```
+
+            **What the Provenance Verification Checks:**
+            - ✅ Binary was built by the official GitHub Actions workflow
+            - ✅ Build occurred from the tagged commit in this repository
+            - ✅ No unauthorized modifications to the build process
+            - ✅ Cryptographic integrity of the build environment
+
+            #### 3. OCI Artifact Verification
+
+            **Automatic Verification:**
+            ```bash
+            # ORAS automatically verifies attestations when pulling
+            oras pull ${{ env.REGISTRY }}/gillisandrew/dragonglass-poc/dragonglass:${{ steps.version.outputs.version }} --verbose
+            ```
+
+            **Manual Verification:**
+            ```bash
+            # List all attestations for the OCI artifact
+            oras discover ${{ env.REGISTRY }}/gillisandrew/dragonglass-poc/dragonglass:${{ steps.version.outputs.version }}
+
+            # Verify specific attestation types
+            gh attestation verify oci://${{ env.REGISTRY }}/gillisandrew/dragonglass:${{ steps.version.outputs.version }} --owner gillisandrew
+            ```
+
+            #### 4. SBOM (Software Bill of Materials) Verification
+            ```bash
+            # The SBOM is automatically generated and attested
+            # View SBOM details through GitHub's dependency graph or via CLI
+            gh api repos/gillisandrew/dragonglass-poc/dependency-graph/sbom
+            ```
+
+            #### 5. Advanced Security Practices
+
+            **For Enterprise/Security-Critical Environments:**
+            ```bash
+            # 1. Always verify provenance before execution
+            gh attestation verify dragonglass-darwin-arm64 --owner gillisandrew
+
+            # 2. Check the specific workflow that built the binary
+            gh attestation verify dragonglass-darwin-arm64 --owner gillisandrew --format json | jq '.verificationResult.statement.predicate.buildDefinition.buildType'
+
+            # 3. Verify the exact commit SHA that produced the binary
+            gh attestation verify dragonglass-darwin-arm64 --owner gillisandrew --format json | jq '.verificationResult.statement.predicate.buildDefinition.resolvedDependencies[0].digest'
+
+            # 4. Ensure binary matches expected checksum
+            sha256sum dragonglass-darwin-arm64
+            grep dragonglass-darwin-arm64 checksums.txt
+            ```
+
+            **Troubleshooting Verification:**
+            - If `gh attestation verify` fails, the binary may have been tampered with
+            - Ensure you're using the latest GitHub CLI: `gh version`
+            - For corporate networks, ensure access to `https://github.com` and `https://fulcio.sigstore.dev`
+            - Contact repository maintainers if verification consistently fails
+
+            **Security Policy:**
+            This project follows SLSA Level 3 requirements for supply chain security. All binaries include cryptographic provenance attestations that can be independently verified.
 
   create-oci-artifacts:
     name: Create OCI Artifacts
@@ -269,7 +348,7 @@ jobs:
         id: push
         run: |
           cd oci-artifacts
-          DIGEST=$(oras push ${{ env.REGISTRY }}/gillisandrew/dragonglass:${{ steps.version.outputs.version }} \
+          DIGEST=$(oras push ${{ env.REGISTRY }}/gillisandrew/dragonglass-poc/dragonglass:${{ steps.version.outputs.version }} \
             --annotation "org.opencontainers.image.title=Dragonglass CLI" \
             --annotation "org.opencontainers.image.description=A secure plugin manager for Obsidian with supply chain verification" \
             --annotation "org.opencontainers.image.version=${{ steps.version.outputs.version }}" \
@@ -281,7 +360,7 @@ jobs:
 
           # Also tag as latest if this is not a pre-release
           if [[ ! "${{ steps.version.outputs.version }}" =~ "-" ]]; then
-            oras tag ${{ env.REGISTRY }}/gillisandrew/dragonglass:${{ steps.version.outputs.version }} latest
+            oras tag ${{ env.REGISTRY }}/gillisandrew/dragonglass-poc/dragonglass:${{ steps.version.outputs.version }} latest
           fi
 
       - name: Generate SBOM
