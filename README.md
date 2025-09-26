@@ -20,12 +20,21 @@ Dragonglass creates a curated ecosystem where plugins must be built through veri
 
 ## Features
 
+### ✅ Current Capabilities
+
 - 🔒 **Provenance Verification** - Validates plugins were built through authorized workflows using [SLSA](https://slsa.dev/) attestations
 - 🛡️ **Supply Chain Security** - Verifies cryptographic signatures using [Sigstore](https://www.sigstore.dev/) and [GitHub Attestations](https://docs.github.com/en/actions/security-guides/using-artifact-attestations-to-establish-provenance-for-builds)
-- 📋 **SBOM Analysis** - Inspects Software Bill of Materials for dependency transparency
-- 🔍 **Vulnerability Scanning** - Identifies known security issues in plugin dependencies
+- 📋 **SBOM Validation** - Checks for the existence of Software Bill of Materials (SBOM) attestations
+- 🏗️ **Workflow Verification** - Ensures plugins were built using the expected trusted workflow
 - 🏪 **Curated Ecosystem** - Only plugins built through the verified workflow are supported
 - 🔑 **GitHub Integration** - Seamless authentication with GitHub App and OAuth device flow
+
+### 🚧 Planned Features
+
+- 🔍 **Vulnerability Scanning** - Cross-reference SBOM contents against vulnerability databases (CVE, etc.)
+- 📊 **Dependency Analysis** - Deep inspection of SBOM contents for security insights
+- 🚨 **Security Alerts** - Notifications when vulnerabilities are discovered in installed plugins
+- 🔄 **Automatic Updates** - Secure plugin update mechanism with attestation re-verification
 
 ## Installation
 
@@ -142,11 +151,17 @@ The build workflow will automatically copy `manifest.json` to the final artifact
 
 Dragonglass implements multiple layers of security verification:
 
-1. **Build Provenance** - [SLSA](https://slsa.dev/) Level 3 attestations prove plugins were built by authorized workflows
-2. **Cryptographic Signatures** - All artifacts are signed using [Sigstore](https://www.sigstore.dev/) and [GitHub's attestation framework](https://docs.github.com/en/actions/security-guides/using-artifact-attestations-to-establish-provenance-for-builds)
-3. **Dependency Transparency** - SPDX-format SBOMs provide complete dependency visibility
-4. **Vulnerability Assessment** - Automated scanning identifies known security issues
-5. **OCI Distribution** - Plugins are distributed through [OCI-compliant](https://opencontainers.org/) registries using [ORAS](https://oras.land/)
+### Currently Implemented
+1. **Build Provenance Verification** - Validates [SLSA](https://slsa.dev/) Level 3 attestations to prove plugins were built by the expected authorized workflow
+2. **Cryptographic Signature Verification** - Verifies all artifacts are properly signed using [Sigstore](https://www.sigstore.dev/) and [GitHub's attestation framework](https://docs.github.com/en/actions/security-guides/using-artifact-attestations-to-establish-provenance-for-builds)
+3. **SBOM Attestation Validation** - Confirms the presence of SPDX-format Software Bill of Materials attestations
+4. **Workflow Identity Verification** - Ensures plugins were built by the trusted workflow identity
+5. **OCI Distribution** - Secure plugin distribution through [OCI-compliant](https://opencontainers.org/) registries using [ORAS](https://oras.land/)
+
+### Planned Security Enhancements
+- **SBOM Content Analysis** - Deep inspection of dependency lists in SBOM attestations
+- **Vulnerability Database Integration** - Cross-reference SBOM dependencies against CVE databases
+- **Automated Security Scanning** - Continuous monitoring for newly discovered vulnerabilities
 
 ## Configuration
 
