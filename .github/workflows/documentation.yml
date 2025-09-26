@@ -1,0 +1,77 @@
+name: Documentation
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "**.md"
+      - "docs/**"
+      - "*.md"
+      - ".github/workflows/documentation.yml"
+  push:
+    branches: [main]
+    paths:
+      - "**.md"
+      - "docs/**"
+      - "*.md"
+      - ".github/workflows/documentation.yml"
+
+jobs:
+  lint-docs:
+    name: Lint Documentation
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install markdownlint
+        run: npm install -g markdownlint-cli2
+
+      - name: Lint Markdown files
+        run: markdownlint-cli2 "**/*.md" "#node_modules" "#.git"
+
+      - name: Check for broken links
+        uses: gaurav-nelson/github-action-markdown-link-check@v1
+        with:
+          use-quiet-mode: "yes"
+          use-verbose-mode: "yes"
+          check-modified-files-only: "yes"
+
+  validate-docs:
+    name: Validate Documentation Structure
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Check required documentation files
+        run: |
+          # Check for required files
+          if [ ! -f "README.md" ]; then
+            echo "❌ README.md is missing"
+            exit 1
+          fi
+
+          if [ ! -f "LICENSE" ]; then
+            echo "❌ LICENSE file is missing"
+            exit 1
+          fi
+
+          # Check for basic sections in README
+          if ! grep -q "# dragonglass" README.md; then
+            echo "❌ README.md should have a proper title"
+            exit 1
+          fi
+
+          echo "✅ Documentation structure looks good"

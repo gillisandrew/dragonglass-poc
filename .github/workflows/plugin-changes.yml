@@ -1,0 +1,116 @@
+name: Plugin Changes
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "plugins/**"
+      - "example-plugin/**"
+      - "schemas/**"
+      - ".github/workflows/plugin-changes.yml"
+  push:
+    branches: [main]
+    paths:
+      - "plugins/**"
+      - "example-plugin/**"
+      - "schemas/**"
+      - ".github/workflows/plugin-changes.yml"
+
+jobs:
+  validate-plugin-configs:
+    name: Validate Plugin Configurations
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Validate JSON schemas
+        run: |
+          # Install JSON schema validator
+          npm install -g ajv-cli
+
+          # Validate all build.json files against schema
+          find plugins/ -name "build.json" -type f | while read -r file; do
+            echo "Validating $file..."
+            if [ -f "schemas/build.v1.json" ]; then
+              ajv validate -s schemas/build.v1.json -d "$file" || {
+                echo "❌ $file failed validation"
+                exit 1
+              }
+            else
+              echo "⚠️  Schema file not found, skipping validation for $file"
+            fi
+          done
+
+          echo "✅ All plugin configurations are valid"
+
+      - name: Check plugin structure
+        run: |
+          # Check that all plugin directories have expected structure
+          find plugins/ -mindepth 2 -maxdepth 2 -type d | while read -r plugin_dir; do
+            if [ ! -d "$plugin_dir/tags" ]; then
+              echo "❌ $plugin_dir is missing 'tags' directory"
+              exit 1
+            fi
+            
+            # Check that each tag has a build.json
+            find "$plugin_dir/tags" -type d -mindepth 1 | while read -r tag_dir; do
+              if [ ! -f "$tag_dir/build.json" ]; then
+                echo "❌ $tag_dir is missing build.json"
+                exit 1
+              fi
+            done
+          done
+
+          echo "✅ Plugin directory structure looks good"
+
+  validate-example-plugin:
+    name: Validate Example Plugin
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install dependencies
+        working-directory: example-plugin
+        run: npm ci
+
+      - name: Type check
+        working-directory: example-plugin
+        run: npx tsc --noEmit
+
+      - name: Build example plugin
+        working-directory: example-plugin
+        run: npm run build
+
+      - name: Validate manifest
+        working-directory: example-plugin
+        run: |
+          if [ ! -f "manifest.json" ]; then
+            echo "❌ manifest.json is missing"
+            exit 1
+          fi
+
+          # Basic JSON validation
+          python3 -m json.tool manifest.json > /dev/null || {
+            echo "❌ manifest.json is not valid JSON"
+            exit 1
+          }
+
+          echo "✅ Example plugin is valid"

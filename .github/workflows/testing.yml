@@ -1,0 +1,105 @@
+name: Testing
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "**.go"
+      - "go.mod"
+      - "go.sum"
+      - "**/*_test.go"
+      - "Makefile"
+      - ".github/workflows/testing.yml"
+  push:
+    branches: [main]
+    paths:
+      - "**.go"
+      - "go.mod"
+      - "go.sum"
+      - "**/*_test.go"
+      - "Makefile"
+      - ".github/workflows/testing.yml"
+
+jobs:
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    strategy:
+      matrix:
+        go-version: ["1.25"]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Set up Go ${{ matrix.go-version }}
+        uses: actions/setup-go@v6
+        with:
+          go-version: ${{ matrix.go-version }}
+          check-latest: true
+
+      - name: Download dependencies
+        run: go mod download
+
+      - name: Run tests
+        run: go test -v -race -coverprofile=coverage.out ./...
+
+      - name: Generate coverage report
+        run: go tool cover -html=coverage.out -o coverage.html
+
+      - name: Upload coverage to Codecov
+        if: matrix.go-version == '1.25'
+        uses: codecov/codecov-action@v4
+        with:
+          file: ./coverage.out
+          flags: unittests
+          name: codecov-umbrella
+          fail_ci_if_error: false
+
+      - name: Upload coverage artifact
+        if: matrix.go-version == '1.25'
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: |
+            coverage.out
+            coverage.html
+
+  integration-tests:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    if: github.event_name == 'pull_request'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: "go.mod"
+          check-latest: true
+
+      - name: Build CLI
+        run: make build-cli
+
+      - name: Create test vault
+        run: |
+          mkdir -p test-vault/.obsidian
+          echo '{"plugins": {}}' > test-vault/.obsidian/community-plugins.json
+
+      - name: Test CLI basic functionality
+        run: |
+          cd test-vault
+          # Test help command
+          ../bin/dragonglass --help
+
+          # Test config initialization (if implemented)
+          ../bin/dragonglass --help | grep -q "dragonglass" || exit 1
+
+          echo "Basic CLI functionality tests passed"
