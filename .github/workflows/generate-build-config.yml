@@ -37,6 +37,9 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v5
 
+      - name: Install JSON Schema CLI
+        uses: sourcemeta/jsonschema@v11.8.3
+
       - name: Fetch commit hash for refname
         id: fetch-commit
         run: |
@@ -156,39 +159,12 @@ jobs:
           echo "$FORMATTED_JSON" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
 
-      - name: Validate generated build.json
+      - name: Validate generated build.json with JSON Schema
         run: |
           BUILD_FILE="${{ steps.setup-dirs.outputs.build-dir }}/build.json"
 
-          # Basic validation
-          if ! jq empty "$BUILD_FILE" 2>/dev/null; then
-            echo "Error: Generated build.json is not valid JSON"
-            exit 1
-          fi
-
-          # Check required fields
-          VERSION=$(jq -r '.version // empty' "$BUILD_FILE")
-          COMMIT=$(jq -r '.commit // empty' "$BUILD_FILE")
-
-          if [ -z "$VERSION" ]; then
-            echo "Error: Missing required 'version' field"
-            exit 1
-          fi
-
-          if [ "$VERSION" != "1" ]; then
-            echo "Error: Invalid version '$VERSION', expected '1'"
-            exit 1
-          fi
-
-          if [ -z "$COMMIT" ]; then
-            echo "Error: Missing required 'commit' field"
-            exit 1
-          fi
-
-          if ! echo "$COMMIT" | grep -qE '^[a-f0-9]{40}$'; then
-            echo "Error: Invalid commit hash format '$COMMIT'"
-            exit 1
-          fi
+          echo "Validating $BUILD_FILE against JSON Schema..."
+          jsonschema validate schemas/build.v1.json "$BUILD_FILE" --http
 
           echo "✅ build.json validation passed"
 

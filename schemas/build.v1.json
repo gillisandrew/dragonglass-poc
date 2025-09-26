@@ -3,55 +3,55 @@
   "$id": "https://raw.githubusercontent.com/gillisandrew/dragonglass-poc/refs/heads/main/schemas/build.v1.json",
   "title": "Dragonglass Plugin Build Configuration",
   "description": "Configuration schema for building plugins with the Dragonglass build system",
-  "type": "object",
-  "properties": {
-    "version": {
-      "type": "string",
-      "description": "Schema version for compatibility and evolution tracking",
-      "const": "1",
-      "examples": ["1"]
-    },
-    "commit": {
-      "type": "string",
-      "description": "Specific commit hash to build from",
-      "pattern": "^[a-f0-9]{40}$",
-      "examples": ["38d5d3fa799e1eec8f10b137eee8b2cbdc73b534"]
-    },
-    "pluginDirectory": {
-      "type": "string",
-      "description": "Directory within the repository containing the plugin source code",
-      "examples": ["", "src", "plugin"]
-    },
-    "buildDirectory": {
-      "type": "string",
-      "description": "Directory where npm run build outputs artifacts (relative to plugin directory)",
-      "examples": ["", "dist", "build", "out"]
-    },
-    "outputDirectory": {
-      "type": "string",
-      "description": "Directory where final built plugin artifacts will be exported",
-      "default": "dist",
-      "examples": ["dist", "build", "output"]
-    }
-  },
-  "required": ["version", "commit"],
-  "additionalProperties": false,
   "examples": [
     {
-      "version": "1",
-      "commit": "38d5d3fa799e1eec8f10b137eee8b2cbdc73b534"
+      "commit": "38d5d3fa799e1eec8f10b137eee8b2cbdc73b534",
+      "version": "1"
     },
     {
-      "version": "1",
-      "commit": "abc123def456789",
-      "pluginDirectory": "src",
       "buildDirectory": "dist",
-      "outputDirectory": "build"
+      "commit": "abc123def456789",
+      "outputDirectory": "build",
+      "pluginDirectory": "src",
+      "version": "1"
     },
     {
-      "version": "1",
       "commit": "def456abc789123",
-      "outputDirectory": "dist"
+      "outputDirectory": "dist",
+      "version": "1"
     }
-  ]
+  ],
+  "type": "object",
+  "required": [ "version", "commit" ],
+  "properties": {
+    "buildDirectory": {
+      "description": "Directory where npm run build outputs artifacts (relative to plugin directory)",
+      "examples": [ "", "dist", "build", "out" ],
+      "type": "string"
+    },
+    "commit": {
+      "description": "Specific commit hash to build from",
+      "examples": [ "38d5d3fa799e1eec8f10b137eee8b2cbdc73b534" ],
+      "type": "string",
+      "pattern": "^[a-f0-9]{40}$"
+    },
+    "outputDirectory": {
+      "description": "Directory where final built plugin artifacts will be exported",
+      "examples": [ "dist", "build", "output" ],
+      "default": "dist",
+      "type": "string"
+    },
+    "pluginDirectory": {
+      "description": "Directory within the repository containing the plugin source code",
+      "examples": [ "", "src", "plugin" ],
+      "type": "string"
+    },
+    "version": {
+      "description": "Schema version for compatibility and evolution tracking",
+      "examples": [ "1" ],
+      "type": "string",
+      "const": "1"
+    }
+  },
+  "additionalProperties": false
 }

@@ -2,7 +2,7 @@
   "json.schemas": [
     {
       "fileMatch": ["plugins/**/build.json"],
-      "url": "https://raw.githubusercontent.com/gillisandrew/dragonglass-poc/refs/heads/main/schemas/build.v1.json"
+      "url": "./schemas/build.v1.json"
     }
   ]
 }
