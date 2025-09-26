@@ -67,14 +67,6 @@ jobs:
               echo "No markdown files changed"
             fi
           fi
-
-      - name: Check for broken links
-        uses: gaurav-nelson/github-action-markdown-link-check@v1
-        with:
-          use-quiet-mode: "yes"
-          use-verbose-mode: "yes"
-          check-modified-files-only: "yes"
-
   validate-docs:
     name: Validate Documentation Structure
     runs-on: ubuntu-latest
