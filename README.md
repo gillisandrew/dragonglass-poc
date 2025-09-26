@@ -11,6 +11,7 @@ Dragonglass is a CLI tool that provides secure plugin management for Obsidian by
 ## Why Dragonglass?
 
 The current Obsidian plugin ecosystem lacks:
+
 - **Supply chain security verification** - No way to verify plugins haven't been tampered with
 - **Continuous vulnerability scanning** - No automated security assessment of dependencies  
 - **Provenance attestation** - No proof of where and how plugins were built
@@ -79,6 +80,7 @@ gh attestation verify dragonglass-darwin-arm64 --owner gillisandrew
 **📖 For detailed verification instructions, see [Provenance Verification Guide](docs/PROVENANCE_VERIFICATION.md)**
 
 This includes:
+
 - ✅ Build provenance attestation verification
 - ✅ SBOM (Software Bill of Materials) validation  
 - ✅ Checksum integrity verification
@@ -88,22 +90,26 @@ This includes:
 ## Quick Start
 
 1. **Authenticate with GitHub**:
+
    ```bash
    dragonglass auth
    ```
 
 2. **Navigate to your Obsidian vault and install a plugin**:
+
    ```bash
    cd /path/to/your/vault
    dragonglass install callumalpass/tasknotes@3.23.4
    ```
 
 3. **List installed plugins**:
+
    ```bash
    dragonglass list
    ```
 
 4. **Verify plugin integrity**:
+
    ```bash
    dragonglass verify
    ```
@@ -111,15 +117,19 @@ This includes:
 ## Commands
 
 ### `dragonglass auth`
+
 Authenticate with GitHub using OAuth device flow. Credentials are securely stored in your system keychain.
 
 ### `dragonglass install <plugin>[@version]`
+
 Install a verified plugin from the curated registry. Downloads the plugin, verifies all attestations, and installs to your Obsidian vault.
 
 ### `dragonglass list`
+
 Show all plugins managed by Dragonglass in the current vault, including version and verification status.
 
 ### `dragonglass verify`
+
 Re-verify all installed plugins against their attestations to ensure integrity.
 
 ## Supported Plugins
@@ -159,11 +169,13 @@ jobs:
 ### Requirements
 
 Your plugin repository must have:
+
 - `manifest.json` - Obsidian plugin manifest (present in plugin directory)
 - `package.json` - Node.js build configuration with build scripts
 - Build configuration (e.g., `esbuild.config.mjs`) that supports production builds
 
 The command `NODE_ENV=production npm run build` must produce:
+
 - `main.js` - Bundled plugin code
 - `styles.css` - Plugin styles
 
@@ -174,6 +186,7 @@ The build workflow will automatically copy `manifest.json` to the final artifact
 Dragonglass implements multiple layers of security verification:
 
 ### Currently Implemented
+
 1. **Build Provenance Verification** - Validates [SLSA](https://slsa.dev/) Level 3 attestations to prove plugins were built by the expected authorized workflow
 2. **Cryptographic Signature Verification** - Verifies all artifacts are properly signed using [Sigstore](https://www.sigstore.dev/) and [GitHub's attestation framework](https://docs.github.com/en/actions/security-guides/using-artifact-attestations-to-establish-provenance-for-builds)
 3. **SBOM Attestation Validation** - Confirms the presence of SPDX-format Software Bill of Materials attestations
@@ -181,6 +194,7 @@ Dragonglass implements multiple layers of security verification:
 5. **OCI Distribution** - Secure plugin distribution through [OCI-compliant](https://opencontainers.org/) registries using [ORAS](https://oras.land/)
 
 ### Planned Security Enhancements
+
 - **SBOM Content Analysis** - Deep inspection of dependency lists in SBOM attestations
 - **Vulnerability Database Integration** - Cross-reference SBOM dependencies against CVE databases
 - **Automated Security Scanning** - Continuous monitoring for newly discovered vulnerabilities

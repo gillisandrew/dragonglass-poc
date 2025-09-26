@@ -5,6 +5,7 @@ This guide explains how to verify the authenticity and integrity of Dragonglass 
 ## Overview
 
 All Dragonglass CLI releases include:
+
 - **Build Provenance Attestations** - Cryptographic proof of how binaries were built
 - **SBOM (Software Bill of Materials)** - Complete dependency information
 - **Checksum Verification** - File integrity validation
@@ -15,6 +16,7 @@ All Dragonglass CLI releases include:
 ### 1. Install Prerequisites
 
 **GitHub CLI:**
+
 ```bash
 # macOS
 brew install gh
@@ -29,6 +31,7 @@ winget install GitHub.cli
 ```
 
 **Authenticate:**
+
 ```bash
 gh auth login
 ```
@@ -65,6 +68,7 @@ sha256sum -c checksums.txt
 ```
 
 **Expected output:**
+
 ```
 dragonglass-v0.1.3-darwin-arm64.tar.gz: OK
 dragonglass-v0.1.3-darwin-amd64.tar.gz: OK
@@ -80,6 +84,7 @@ gh attestation verify ${TOOL}-${PLATFORM} --owner gillisandrew
 ```
 
 **Expected output:**
+
 ```
 Loaded digest sha256:abc123... for file://dragonglass-darwin-arm64
 Loaded 1 attestation from GitHub API
@@ -177,6 +182,7 @@ echo "✅ All security checks passed!"
 ```
 
 **Usage:**
+
 ```bash
 chmod +x security-verify.sh
 ./security-verify.sh dragonglass v0.1.3 darwin-arm64
@@ -187,16 +193,19 @@ chmod +x security-verify.sh
 ### Common Issues
 
 **"No attestations found"**
+
 - Ensure you're using the correct repository owner: `--owner gillisandrew`
 - Check that the binary filename matches exactly
 - Verify you're authenticated with GitHub: `gh auth status`
 
 **"Verification failed"**
+
 - The binary may have been tampered with - do not use it
 - Ensure you downloaded from the official GitHub release
 - Contact repository maintainers if the issue persists
 
 **Network/Corporate Firewall Issues**
+
 - Ensure access to:
   - `https://github.com`
   - `https://fulcio.sigstore.dev`
@@ -205,9 +214,9 @@ chmod +x security-verify.sh
 
 ### Getting Help
 
-- **Repository Issues**: https://github.com/gillisandrew/dragonglass-poc/issues
-- **GitHub CLI Help**: https://cli.github.com/manual/
-- **SLSA Documentation**: https://slsa.dev/
+- **Repository Issues**: <https://github.com/gillisandrew/dragonglass-poc/issues>
+- **GitHub CLI Help**: <https://cli.github.com/manual/>
+- **SLSA Documentation**: <https://slsa.dev/>
 
 ## Security Policy
 

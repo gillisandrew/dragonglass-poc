@@ -1,9 +1,11 @@
 # Dragonglass CLI Development Plan
 
 ## Overview
+
 This plan breaks down the development of the Dragonglass CLI into small, iterative steps that build upon each other. Each step is designed to be implementable safely while moving the project forward meaningfully.
 
 ## Development Strategy
+
 - **Language**: Go (excellent OCI registry support)
 - **Approach**: Incremental development with working CLI at each step
 - **Testing**: Unit tests for each component, integration tests for workflows
@@ -12,16 +14,19 @@ This plan breaks down the development of the Dragonglass CLI into small, iterati
 ## Phase 1: Foundation (Steps 1-3)
 
 ### Step 1: Project Bootstrap
+
 **Goal**: Create a working Go project with basic CLI structure
 **Deliverable**: `dragonglass --help` works and shows command structure
 **Size**: Small - project setup with minimal complexity
 
 ### Step 2: Configuration Management
+
 **Goal**: Implement per-vault configuration file handling
 **Deliverable**: CLI can read/write config files in `.obsidian/` directories
 **Size**: Small - file I/O with basic validation
 
 ### Step 3: Lockfile Management
+
 **Goal**: Implement lockfile creation, reading, and updating
 **Deliverable**: CLI can manage `.obsidian/dragonglass-lock.json` files
 **Size**: Small - JSON marshaling with struct definitions
@@ -29,11 +34,13 @@ This plan breaks down the development of the Dragonglass CLI into small, iterati
 ## Phase 2: Authentication (Steps 4-5)
 
 ### Step 4: GitHub App Authentication Structure
+
 **Goal**: Implement GitHub App device flow authentication without credential storage
 **Deliverable**: `dragonglass auth` completes device flow and gets token
 **Size**: Medium - OAuth flow implementation
 
 ### Step 5: Credential Storage
+
 **Goal**: Add secure credential caching with OS keychain fallback
 **Deliverable**: Tokens persist between CLI invocations securely
 **Size**: Small-Medium - keychain integration with fallback
@@ -41,16 +48,19 @@ This plan breaks down the development of the Dragonglass CLI into small, iterati
 ## Phase 3: OCI Integration (Steps 6-8)
 
 ### Step 6: Basic OCI Registry Client
+
 **Goal**: Implement OCI artifact pulling from ghcr.io with authentication
 **Deliverable**: CLI can download OCI images and extract contents
 **Size**: Medium - OCI client library integration
 
 ### Step 7: OCI Manifest Parsing
+
 **Goal**: Extract Obsidian plugin metadata from OCI manifest annotations
 **Deliverable**: CLI can read plugin info from image annotations
 **Size**: Small - JSON parsing and validation
 
 ### Step 8: Plugin File Extraction
+
 **Goal**: Extract plugin files from OCI image to temporary directory
 **Deliverable**: Plugin files are extracted and validated as Obsidian plugin structure
 **Size**: Small - file system operations with validation
@@ -58,21 +68,25 @@ This plan breaks down the development of the Dragonglass CLI into small, iterati
 ## Phase 4: Verification Pipeline (Steps 9-12)
 
 ### Step 9: SLSA Provenance Verification
+
 **Goal**: Implement SLSA attestation verification against expected workflow
 **Deliverable**: CLI can verify provenance of OCI artifacts
 **Size**: Medium - SLSA library integration and workflow validation
 
 ### Step 10: SPDX SBOM Parsing
+
 **Goal**: Parse and analyze SPDX documents from OCI attestations
 **Deliverable**: CLI can extract dependency information from SBOM
 **Size**: Medium - SPDX parsing with dependency analysis
 
 ### Step 11: Vulnerability Scanning Integration
+
 **Goal**: Check SBOM dependencies against vulnerability databases
 **Deliverable**: CLI identifies CVEs in plugin dependencies with links
 **Size**: Medium - vulnerability database integration
 
 ### Step 12: Verification Results Presentation
+
 **Goal**: Present verification results with user prompts for acknowledgment
 **Deliverable**: CLI shows detailed verification results and gets user consent
 **Size**: Small-Medium - UI/UX for terminal interaction
@@ -80,16 +94,19 @@ This plan breaks down the development of the Dragonglass CLI into small, iterati
 ## Phase 5: Plugin Management (Steps 13-15)
 
 ### Step 13: Plugin Installation
+
 **Goal**: Install verified plugins to `.obsidian/plugins/` directory
 **Deliverable**: `dragonglass install` command works end-to-end
 **Size**: Small - file operations with conflict handling
 
 ### Step 14: List Installed Plugins
+
 **Goal**: Implement plugin listing from lockfile and filesystem
 **Deliverable**: `dragonglass list` shows installed verified plugins
 **Size**: Small - data presentation from existing structures
 
 ### Step 15: Verify Without Installation
+
 **Goal**: Implement verification-only mode
 **Deliverable**: `dragonglass verify` shows verification results without installing
 **Size**: Small - reuse existing verification pipeline
@@ -97,6 +114,7 @@ This plan breaks down the development of the Dragonglass CLI into small, iterati
 ## Implementation Prompts
 
 ### Prompt 1: Project Bootstrap
+
 ```
 Create a new Go CLI application called 'dragonglass' using Cobra for command structure. Set up the project with:
 
@@ -112,6 +130,7 @@ The CLI should follow Go best practices and have a clean, maintainable structure
 ```
 
 ### Prompt 2: Configuration Management
+
 ```
 Implement configuration file management for the Dragonglass CLI. Build upon the existing CLI structure by adding:
 
@@ -126,6 +145,7 @@ The configuration should be stored as JSON in `.obsidian/dragonglass-config.json
 ```
 
 ### Prompt 3: Lockfile Management
+
 ```
 Implement lockfile management building on the existing configuration system. Add:
 
@@ -140,6 +160,7 @@ The lockfile should track installed plugins with enough information to verify an
 ```
 
 ### Prompt 4: GitHub App Authentication Structure
+
 ```
 Implement GitHub App native device flow authentication. Extend the existing CLI by adding:
 
@@ -156,6 +177,7 @@ Do not rely on go-gh library - implement the device flow natively. The auth comm
 ```
 
 ### Prompt 5: Credential Storage
+
 ```
 Add secure credential storage to the existing authentication system. Build upon the GitHub App authentication by adding:
 
@@ -171,6 +193,7 @@ Update the authentication flow to automatically store tokens after successful au
 ```
 
 ### Prompt 6: Basic OCI Registry Client
+
 ```
 Implement OCI registry client functionality. Build on existing authentication by adding:
 
@@ -187,6 +210,7 @@ The client should use ORAS authentication patterns (auth.StaticCredential) rathe
 ```
 
 ### Prompt 7: OCI Manifest Parsing
+
 ```
 Add OCI manifest parsing to extract plugin metadata. Extend the OCI client by adding:
 
@@ -201,6 +225,7 @@ The parser should extract plugin information from OCI manifest annotations and v
 ```
 
 ### Prompt 8: Plugin File Extraction
+
 ```
 Implement plugin file extraction from OCI artifacts. Build on the OCI client by adding:
 
@@ -216,6 +241,7 @@ The extractor should verify the extracted files form a valid Obsidian plugin bef
 ```
 
 ### Prompt 9: SLSA Provenance Verification
+
 ```
 Implement SLSA provenance verification with DSSE in-toto attestations. Extend the verification pipeline by adding:
 
@@ -233,6 +259,7 @@ The verifier should discover and verify DSSE-wrapped in-toto SLSA attestations w
 ```
 
 ### Prompt 10: SPDX SBOM Parsing
+
 ```
 Implement SPDX SBOM parsing and analysis with DSSE in-toto attestations. Build on the verification pipeline by adding:
 
@@ -251,6 +278,7 @@ The parser should discover and extract comprehensive dependency information from
 ```
 
 ### Prompt 11: Vulnerability Scanning Integration
+
 ```
 Implement vulnerability scanning using SBOM data. Extend the verification pipeline by adding:
 
@@ -266,6 +294,7 @@ The scanner should identify vulnerabilities in plugin dependencies and distingui
 ```
 
 ### Prompt 12: Verification Results Presentation
+
 ```
 Implement verification results presentation and user interaction. Build on all verification components by adding:
 
@@ -281,6 +310,7 @@ The presenter should clearly communicate verification results and guide users th
 ```
 
 ### Prompt 13: Plugin Installation
+
 ```
 Implement plugin installation to Obsidian directories. Build on the complete verification pipeline by adding:
 
@@ -296,6 +326,7 @@ The installer should handle the final step of placing verified plugins into Obsi
 ```
 
 ### Prompt 14: List Installed Plugins
+
 ```
 Implement the list command functionality. Build on existing lockfile and plugin management by adding:
 
@@ -311,6 +342,7 @@ The list command should provide clear visibility into installed verified plugins
 ```
 
 ### Prompt 15: Verify Without Installation
+
 ```
 Implement the verify-only command. Build on the complete verification pipeline by adding:
 
@@ -328,6 +360,7 @@ The verify command should run the complete verification pipeline and present res
 ## Integration and Testing Strategy
 
 Each prompt builds incrementally on previous work, ensuring:
+
 - No orphaned or unused code
 - Each step produces a working CLI with expanded functionality
 - Clear integration points between components
@@ -337,6 +370,7 @@ Each prompt builds incrementally on previous work, ensuring:
 ## Final Integration
 
 The final step integrates all components into a cohesive CLI tool that:
+
 - Authenticates with GitHub App device flow
 - Downloads and verifies OCI artifacts from ghcr.io
 - Performs comprehensive security verification (SLSA, SBOM, vulnerabilities)

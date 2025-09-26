@@ -5,6 +5,7 @@ This directory contains JSON Schema definitions for the Dragonglass plugin build
 ## build.json Schema
 
 The `build.json` schema defines the configuration format for plugin build specifications located at:
+
 ```
 plugins/{owner}/{repo}/tags/{version}/build.json
 ```
@@ -39,7 +40,8 @@ You can reference this schema in your `build.json` files:
 
 ### Examples
 
-#### Build from specific commit:
+#### Build from specific commit
+
 ```json
 {
   "version": "1",
@@ -47,7 +49,8 @@ You can reference this schema in your `build.json` files:
 }
 ```
 
-#### Build from tag with custom directories:
+#### Build from tag with custom directories
+
 ```json
 {
   "version": "1",
@@ -58,7 +61,8 @@ You can reference this schema in your `build.json` files:
 }
 ```
 
-#### Minimal configuration:
+#### Minimal configuration
+
 ```json
 {
   "version": "1",
@@ -70,6 +74,7 @@ You can reference this schema in your `build.json` files:
 ### Validation
 
 The schema enforces:
+
 - **Version field is required** and must be "1"
 - **Commit field is required** and must be exactly 40 hexadecimal characters
 - No additional properties are allowed
