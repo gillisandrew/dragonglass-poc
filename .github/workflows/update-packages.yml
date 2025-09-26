@@ -1,0 +1,152 @@
+name: Update Packages
+
+on:
+  push:
+    paths:
+      - "plugins/**/build.json"
+
+jobs:
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+      has-changes: ${{ steps.set-matrix.outputs.has-changes }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 2
+
+      - name: Get changed build.json files
+        id: changed-files
+        run: |
+          # Get list of changed build.json files
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            # For pull requests, compare against the base branch
+            CHANGED_FILES=$(git diff --name-only ${{ github.event.pull_request.base.sha }} ${{ github.sha }} | grep 'plugins/.*build\.json$' || true)
+          else
+            # For push events, compare against the previous commit
+            CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD | grep 'plugins/.*build\.json$' || true)
+          fi
+
+          echo "Changed build.json files:"
+          echo "$CHANGED_FILES"
+
+          # Save to output
+          echo "changed-files<<EOF" >> $GITHUB_OUTPUT
+          echo "$CHANGED_FILES" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Parse build.json files and create matrix
+        id: set-matrix
+        run: |
+          CHANGED_FILES="${{ steps.changed-files.outputs.changed-files }}"
+
+          if [ -z "$CHANGED_FILES" ]; then
+            echo "No build.json files changed"
+            echo "has-changes=false" >> $GITHUB_OUTPUT
+            echo "matrix={\"include\":[]}" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          # Initialize matrix array
+          MATRIX_INCLUDE="["
+          FIRST=true
+
+          # Process each changed build.json file
+          while IFS= read -r file; do
+            [ -z "$file" ] && continue
+            
+            echo "Processing: $file"
+            
+            # Extract path components
+            # Example path: plugins/SilentVoid13/Templater/tags/v2.15.2/build.json
+            # Expected structure: plugins/{owner}/{repo}/tags/{version}/build.json
+            if [[ $file =~ plugins/([^/]+)/([^/]+)/tags/([^/]+)/build\.json ]]; then
+              OWNER="${BASH_REMATCH[1]}"
+              REPO="${BASH_REMATCH[2]}"
+              VERSION="${BASH_REMATCH[3]}"
+              
+              # Read and parse build.json
+              if [ -f "$file" ]; then
+                BUILD_JSON_CONTENT=$(cat "$file")
+                
+                # Extract commit from build.json
+                COMMIT=$(echo "$BUILD_JSON_CONTENT" | jq -r '.commit // empty')
+                
+                # Extract other optional fields
+                PLUGIN_DIRECTORY=$(echo "$BUILD_JSON_CONTENT" | jq -r '.plugin_directory // empty')
+                BUILD_DIRECTORY=$(echo "$BUILD_JSON_CONTENT" | jq -r '.build_directory // empty')
+                OUTPUT_DIRECTORY=$(echo "$BUILD_JSON_CONTENT" | jq -r '.output_directory // "dist"')
+                PLUGIN_REF=$(echo "$BUILD_JSON_CONTENT" | jq -r '.plugin_ref // empty')
+                
+                # If no commit specified, use the version as ref
+                if [ -z "$COMMIT" ] && [ -z "$PLUGIN_REF" ]; then
+                  PLUGIN_REF="$VERSION"
+                fi
+                
+                # Add comma separator for subsequent entries
+                if [ "$FIRST" = false ]; then
+                  MATRIX_INCLUDE="$MATRIX_INCLUDE,"
+                fi
+                FIRST=false
+                
+                # Build matrix entry
+                MATRIX_INCLUDE="$MATRIX_INCLUDE{\"file\":\"$file\",\"owner\":\"$OWNER\",\"repo\":\"$REPO\",\"version\":\"$VERSION\",\"plugin-repository\":\"$OWNER/$REPO\""
+                
+                # Add optional fields if they exist
+                if [ -n "$COMMIT" ]; then
+                  MATRIX_INCLUDE="$MATRIX_INCLUDE,\"plugin-commit\":\"$COMMIT\""
+                fi
+                if [ -n "$PLUGIN_REF" ]; then
+                  MATRIX_INCLUDE="$MATRIX_INCLUDE,\"plugin-ref\":\"$PLUGIN_REF\""
+                fi
+                if [ -n "$PLUGIN_DIRECTORY" ]; then
+                  MATRIX_INCLUDE="$MATRIX_INCLUDE,\"plugin-directory\":\"$PLUGIN_DIRECTORY\""
+                fi
+                if [ -n "$BUILD_DIRECTORY" ]; then
+                  MATRIX_INCLUDE="$MATRIX_INCLUDE,\"build-directory\":\"$BUILD_DIRECTORY\""
+                fi
+                if [ -n "$OUTPUT_DIRECTORY" ]; then
+                  MATRIX_INCLUDE="$MATRIX_INCLUDE,\"output-directory\":\"$OUTPUT_DIRECTORY\""
+                fi
+                
+                MATRIX_INCLUDE="$MATRIX_INCLUDE}"
+                
+                echo "Added to matrix: $OWNER/$REPO @ $VERSION"
+              else
+                echo "Warning: $file not found"
+              fi
+            else
+              echo "Warning: $file does not match expected pattern plugins/{owner}/{repo}/tags/{version}/build.json"
+            fi
+          done <<< "$CHANGED_FILES"
+
+          MATRIX_INCLUDE="$MATRIX_INCLUDE]"
+          MATRIX="{\"include\":$MATRIX_INCLUDE}"
+
+          echo "Final matrix:"
+          echo "$MATRIX" | jq .
+
+          echo "has-changes=true" >> $GITHUB_OUTPUT
+          echo "matrix=$MATRIX" >> $GITHUB_OUTPUT
+
+  build-plugins:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.has-changes == 'true'
+    strategy:
+      matrix: ${{ fromJson(needs.detect-changes.outputs.matrix) }}
+      fail-fast: false
+    uses: ./.github/workflows/build.yml
+    with:
+      plugin-repository: ${{ matrix.plugin-repository }}
+      plugin-ref: ${{ matrix.plugin-ref }}
+      plugin-commit: ${{ matrix.plugin-commit }}
+      plugin-directory: ${{ matrix.plugin-directory }}
+      build-directory: ${{ matrix.build-directory }}
+      output-directory: ${{ matrix.output-directory }}
+    permissions:
+      contents: read
+      packages: write
+      attestations: write
+      id-token: write
