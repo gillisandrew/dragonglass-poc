@@ -139,7 +139,7 @@ jobs:
           PLUGIN_AUTHOR: ${{ steps.plugin-metadata.outputs.author }}
           PLUGIN_AUTHOR_URL: ${{ steps.plugin-metadata.outputs.author-url }}
           PLUGIN_SOURCE_URL: "https://github.com/${{ github.repository }}"
-          PLUGIN_SOURCE_COMMIT: ${{ github.sha }}
+          PLUGIN_COMMIT: ${{ inputs.plugin-commit }}
           ANNOTATION_FILE: "${{ github.workspace }}/annotations.json"
         run: |
           jq -nc \
@@ -152,7 +152,7 @@ jobs:
           --arg author "$PLUGIN_AUTHOR" \
           --arg authorUrl "$PLUGIN_AUTHOR_URL" \
           --arg sourceUrl "$PLUGIN_SOURCE_URL" \
-          --arg sourceCommit "$PLUGIN_SOURCE_COMMIT" \
+          --arg sourceCommit "$PLUGIN_COMMIT" \
           '
           {
             "$manifest": {
@@ -191,6 +191,7 @@ jobs:
           PLUGIN_ID: ${{ steps.plugin-metadata.outputs.id }}
           SUBJECT_NAME: ghcr.io/${{github.repository}}/${{ steps.plugin-metadata.outputs.id }}
           PLUGIN_VERSION: ${{ steps.plugin-metadata.outputs.version }}
+          PLUGIN_COMMIT: ${{ inputs.plugin-commit }}
         run: |
 
           echo "Pushing artifact to $SUBJECT_NAME"
@@ -214,7 +215,8 @@ jobs:
             echo "$PUSH_OUTPUT" >&2
             exit 1
           fi
-          oras tag $SUBJECT_NAME:$ARTIFACT_NAME latest v$PLUGIN_VERSION
+          oras tag $SUBJECT_NAME:$ARTIFACT_NAME v$PLUGIN_VERSION
+          oras tag $SUBJECT_NAME:$ARTIFACT_NAME commit-$PLUGIN_COMMIT
 
           echo "subject-name=$SUBJECT_NAME" >> $GITHUB_OUTPUT
           echo "subject-digest=$(echo "$PUSH_OUTPUT" | jq -r '.digest')" >> $GITHUB_OUTPUT
