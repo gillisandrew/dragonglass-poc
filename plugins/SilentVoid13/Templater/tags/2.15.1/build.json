@@ -1,4 +1,4 @@
 {
-  "version": "https://raw.githubusercontent.com/gillisandrew/dragonglass-poc/refs/heads/main/schemas/build.v1.json#",
+  "$version": "https://raw.githubusercontent.com/gillisandrew/dragonglass-poc/refs/heads/main/schemas/build.v1.json#",
   "commit": "7a04a26631376a505929d44bf238646bb5c20f5d"
 }
