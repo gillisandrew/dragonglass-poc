@@ -159,3 +159,87 @@ type RegistryConfig struct {
 	DefaultHost string        `json:"defaultHost"`
 	Timeout     time.Duration `json:"timeout"`
 }
+
+// Service Interfaces - These define the contracts for our dependency packages
+
+// AuthService handles authentication operations
+type AuthService interface {
+	// Authenticate starts the authentication flow
+	Authenticate() error
+
+	// IsAuthenticated checks if user has valid credentials
+	IsAuthenticated() bool
+
+	// GetToken returns the current authentication token
+	GetToken() (string, error)
+
+	// GetUser returns the authenticated user information
+	GetUser() (string, error)
+
+	// Logout clears stored credentials
+	Logout() error
+}
+
+// RegistryService handles OCI registry operations
+type RegistryService interface {
+	// Pull downloads a plugin from the registry
+	Pull(imageRef string) (*PullResult, error)
+
+	// ValidateAccess checks if we can access the given image reference
+	ValidateAccess(imageRef string) error
+
+	// GetManifest retrieves the OCI manifest for an image
+	GetManifest(imageRef string) (*ocispec.Manifest, map[string]string, error)
+}
+
+// AttestationService handles cryptographic verification
+type AttestationService interface {
+	// VerifyAttestations verifies SLSA provenance and SBOM attestations
+	VerifyAttestations(imageRef string, trustedBuilder string) (*VerificationResult, error)
+}
+
+// LockfileService handles lockfile operations
+type LockfileService interface {
+	// Load reads the lockfile from the vault directory
+	Load() (*Lockfile, error)
+
+	// Save writes the lockfile to the vault directory
+	Save(lockfile *Lockfile) error
+
+	// AddPlugin adds a plugin entry to the lockfile
+	AddPlugin(id string, entry PluginEntry) error
+
+	// RemovePlugin removes a plugin from the lockfile
+	RemovePlugin(id string) error
+
+	// UpdateVerification updates verification status for a plugin
+	UpdateVerification(id string, verification VerificationState) error
+}
+
+// ConfigService handles application configuration
+type ConfigService interface {
+	// Load reads configuration from the config directory
+	Load() (*Config, error)
+
+	// Save writes configuration to the config directory
+	Save(config *Config) error
+
+	// GetVaultPath returns the path to the Obsidian vault
+	GetVaultPath() (string, error)
+}
+
+// PullResult contains the result of pulling an OCI image
+type PullResult struct {
+	Manifest     ocispec.Manifest
+	ManifestData []byte
+	Layers       []LayerInfo
+	Annotations  map[string]string
+	Plugin       *Plugin
+}
+
+// LayerInfo contains information about an OCI layer
+type LayerInfo struct {
+	Descriptor ocispec.Descriptor
+	Content    []byte
+	SavedPath  string // Path where layer content was saved
+}
