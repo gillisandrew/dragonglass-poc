@@ -35,6 +35,9 @@ type RegistryOpts struct {
 
 	// AuthClient for token management (optional)
 	AuthClient AuthProvider
+
+	// PluginOpts for plugin metadata parsing (optional)
+	PluginOpts *plugin.PluginOpts
 }
 
 // AuthProvider interface for authentication token management
@@ -69,11 +72,25 @@ func (opts *RegistryOpts) WithAuthProvider(provider AuthProvider) *RegistryOpts 
 	return opts
 }
 
+// WithPluginOpts sets plugin parsing options
+func (opts *RegistryOpts) WithPluginOpts(pluginOpts *plugin.PluginOpts) *RegistryOpts {
+	opts.PluginOpts = pluginOpts
+	return opts
+}
+
 type Client struct {
 	opts       *RegistryOpts
 	httpClient *http.Client
 	registry   *remote.Registry
 	token      string
+}
+
+// getPluginOpts safely returns plugin options, using default if not configured
+func (c *Client) getPluginOpts() *plugin.PluginOpts {
+	if c.opts != nil && c.opts.PluginOpts != nil {
+		return c.opts.PluginOpts
+	}
+	return nil // Let NewManifestParser handle the nil case
 }
 
 type PullResult struct {
@@ -287,7 +304,8 @@ func (c *Client) Pull(ctx context.Context, imageRef string, destDir string, prog
 	}
 
 	// Parse plugin metadata from manifest annotations
-	parser := plugin.NewManifestParser(nil) // Use default plugin options
+	pluginOpts := c.getPluginOpts()
+	parser := plugin.NewManifestParser(pluginOpts)
 	pluginMetadata, err := parser.ParseMetadata(&manifest, manifest.Annotations)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse plugin metadata: %w", err)
@@ -405,7 +423,7 @@ func (c *Client) ValidatePlugin(result *PullResult) (*plugin.ValidationResult, e
 		return nil, fmt.Errorf("plugin metadata not available")
 	}
 
-	parser := plugin.NewManifestParser(nil) // Use default plugin options
+	parser := plugin.NewManifestParser(c.getPluginOpts()) // Use configured plugin options safely
 
 	// Validate metadata
 	metadataResult := parser.ValidateMetadata(result.Plugin)

@@ -169,8 +169,11 @@ func runInstallFromLockfile(ctx *cmd.CommandContext, force bool) error {
 }
 
 func installPluginFromLockfileEntry(imageRef, pluginDir, pluginID string, pluginEntry lockfile.PluginEntry, cmdCtx *cmd.CommandContext) error {
-	// Create registry client
-	client, err := registry.NewClient(nil)
+	// Create registry client with plugin options
+	registryOpts := registry.DefaultRegistryOpts().WithPluginOpts(&plugin.PluginOpts{
+		AnnotationNamespace: cmdCtx.AnnotationNamespace,
+	})
+	client, err := registry.NewClient(registryOpts)
 	if err != nil {
 		return fmt.Errorf("failed to create registry client: %w", err)
 	}
@@ -242,9 +245,12 @@ func createPluginManifestFromLockfile(pluginDir, pluginID string, pluginEntry lo
 }
 
 func addPlugin(imageRef string, cfg *config.Config, lockfileData *lockfile.Lockfile, lockfilePath string, cmdCtx *cmd.CommandContext, force bool) error {
-	// Step 1: Create registry client
+	// Step 1: Create registry client with plugin options
 	cmdCtx.Logger.Debug("Creating registry client")
-	client, err := registry.NewClient(nil)
+	registryOpts := registry.DefaultRegistryOpts().WithPluginOpts(&plugin.PluginOpts{
+		AnnotationNamespace: cmdCtx.AnnotationNamespace,
+	})
+	client, err := registry.NewClient(registryOpts)
 	if err != nil {
 		return fmt.Errorf("failed to create registry client: %w", err)
 	}
@@ -262,7 +268,10 @@ func addPlugin(imageRef string, cfg *config.Config, lockfileData *lockfile.Lockf
 
 	// Step 3: Parse plugin metadata
 	cmdCtx.Logger.Debug("Parsing plugin metadata")
-	parser := plugin.NewManifestParser(nil)
+	pluginOpts := &plugin.PluginOpts{
+		AnnotationNamespace: cmdCtx.AnnotationNamespace,
+	}
+	parser := plugin.NewManifestParser(pluginOpts)
 	pluginMetadata, err := parser.ParseMetadata(manifest, annotations)
 	if err != nil {
 		return fmt.Errorf("failed to parse plugin metadata: %w", err)

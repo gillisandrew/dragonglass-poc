@@ -73,6 +73,18 @@ func verifyPlugin(imageRef string, ctx *cmd.CommandContext) error {
 		registryOpts = registryOpts.WithRegistryHost(cfg.Registry.DefaultRegistry)
 	}
 
+	// Configure plugin options for registry client
+	pluginOpts := &plugin.PluginOpts{
+		AnnotationNamespace: ctx.AnnotationNamespace,
+	}
+	if ctx.TrustedBuilder != "" {
+		pluginOpts = pluginOpts.WithTrustedWorkflowSigner(ctx.TrustedBuilder)
+	}
+	if cfg.Verification.StrictMode {
+		pluginOpts = pluginOpts.WithStrictValidation(true)
+	}
+	registryOpts = registryOpts.WithPluginOpts(pluginOpts)
+
 	// Configure auth - always try to provide an auth provider
 	var authProvider *auth.AuthClient
 	if ctx.GitHubToken != "" {
@@ -127,18 +139,7 @@ func verifyPlugin(imageRef string, ctx *cmd.CommandContext) error {
 	// Parse plugin metadata from annotations
 	ctx.Logger.Debug("Parsing plugin metadata")
 
-	// Configure plugin parser with annotation namespace from context
-	pluginOpts := plugin.DefaultPluginOpts()
-	if ctx.AnnotationNamespace != "" {
-		pluginOpts = pluginOpts.WithAnnotationNamespace(ctx.AnnotationNamespace)
-	}
-	if ctx.TrustedBuilder != "" {
-		pluginOpts = pluginOpts.WithTrustedWorkflowSigner(ctx.TrustedBuilder)
-	}
-	if cfg.Verification.StrictMode {
-		pluginOpts = pluginOpts.WithStrictValidation(true)
-	}
-
+	// Use the same plugin options that were configured for the registry client
 	parser := plugin.NewManifestParser(pluginOpts)
 	pluginMetadata, err := parser.ParseMetadata(manifest, annotations)
 	if err != nil {

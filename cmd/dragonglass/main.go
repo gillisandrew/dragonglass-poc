@@ -66,7 +66,8 @@ func getGitHubToken(flagToken string) string {
 	return ""
 }
 
-func main() {
+// createCommandContext creates a CommandContext with the current flag values
+func createCommandContext() *cmd.CommandContext {
 	// Initialize logger based on flags
 	var logger *pterm.Logger
 	if quiet {
@@ -81,7 +82,7 @@ func main() {
 	logger = logger.WithWriter(os.Stderr)
 
 	// Initialize command context with global flags
-	cmdContext := &cmd.CommandContext{
+	return &cmd.CommandContext{
 		AnnotationNamespace: annotationNamespace,
 		TrustedBuilder:      trustedBuilder,
 		ConfigPath:          configPath,
@@ -89,6 +90,14 @@ func main() {
 		GitHubToken:         getGitHubToken(githubToken),
 		Logger:              logger,
 	}
+}
+
+func main() {
+	// Parse flags early to get their values
+	rootCmd.ParseFlags(os.Args[1:])
+
+	// Initialize command context with parsed flags
+	cmdContext := createCommandContext()
 
 	// Add commands with context
 	rootCmd.AddCommand(auth.NewAuthCommand(cmdContext))
@@ -98,7 +107,7 @@ func main() {
 	rootCmd.AddCommand(list.NewListCommand(cmdContext))
 
 	if err := rootCmd.Execute(); err != nil {
-		logger.Error("Command execution failed", logger.Args("error", err))
+		cmdContext.Logger.Error("Command execution failed", cmdContext.Logger.Args("error", err))
 		os.Exit(1)
 	}
 }
