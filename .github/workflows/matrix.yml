@@ -21,6 +21,10 @@ jobs:
             commit: d0271522cae96cf9b5ab6cb6f8bf2c7ba4ad24b2
             directory: ""
             build-directory: ""
+          - plugin-repository: SilentVoid13/Templater
+            commit: 7b78af918be30b4d3c3402fb3deb74bb440d3844
+            directory: ""
+            build-directory: ""
     uses: ./.github/workflows/build.yml
     with:
       plugin-repository: ${{ matrix.plugins.plugin-repository }}
