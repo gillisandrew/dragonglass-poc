@@ -154,6 +154,10 @@ jobs:
           body: |
             ## Dragonglass ${{ steps.version.outputs.version }}
 
+            This release includes two CLI tools:
+            - **dragonglass**: A secure Obsidian plugin manager with provenance verification
+            - **dragonglass-build**: A CLI tool to build plugins using Dagger
+
             ### Installation
 
             Download the appropriate binary for your platform:
@@ -162,32 +166,66 @@ jobs:
             ```bash
             curl -L -o dragonglass.tar.gz https://github.com/gillisandrew/dragonglass-poc/releases/download/${{ steps.version.outputs.version }}/dragonglass-${{ steps.version.outputs.version }}-darwin-arm64.tar.gz
             tar -xzf dragonglass.tar.gz
-            chmod +x dragonglass-darwin-arm64
+            chmod +x dragonglass-darwin-arm64 dragonglass-build-darwin-arm64
             sudo mv dragonglass-darwin-arm64 /usr/local/bin/dragonglass
+            sudo mv dragonglass-build-darwin-arm64 /usr/local/bin/dragonglass-build
             ```
 
             **macOS (Intel)**:
             ```bash
             curl -L -o dragonglass.tar.gz https://github.com/gillisandrew/dragonglass-poc/releases/download/${{ steps.version.outputs.version }}/dragonglass-${{ steps.version.outputs.version }}-darwin-amd64.tar.gz
             tar -xzf dragonglass.tar.gz
-            chmod +x dragonglass-darwin-amd64
+            chmod +x dragonglass-darwin-amd64 dragonglass-build-darwin-amd64
             sudo mv dragonglass-darwin-amd64 /usr/local/bin/dragonglass
+            sudo mv dragonglass-build-darwin-amd64 /usr/local/bin/dragonglass-build
             ```
 
             **Linux (x64)**:
             ```bash
             curl -L -o dragonglass.tar.gz https://github.com/gillisandrew/dragonglass-poc/releases/download/${{ steps.version.outputs.version }}/dragonglass-${{ steps.version.outputs.version }}-linux-amd64.tar.gz
             tar -xzf dragonglass.tar.gz
-            chmod +x dragonglass-linux-amd64
+            chmod +x dragonglass-linux-amd64 dragonglass-build-linux-amd64
             sudo mv dragonglass-linux-amd64 /usr/local/bin/dragonglass
+            sudo mv dragonglass-build-linux-amd64 /usr/local/bin/dragonglass-build
             ```
 
             **Linux (ARM64)**:
             ```bash
             curl -L -o dragonglass.tar.gz https://github.com/gillisandrew/dragonglass-poc/releases/download/${{ steps.version.outputs.version }}/dragonglass-${{ steps.version.outputs.version }}-linux-arm64.tar.gz
             tar -xzf dragonglass.tar.gz
-            chmod +x dragonglass-linux-arm64
+            chmod +x dragonglass-linux-arm64 dragonglass-build-linux-arm64
             sudo mv dragonglass-linux-arm64 /usr/local/bin/dragonglass
+            sudo mv dragonglass-build-linux-arm64 /usr/local/bin/dragonglass-build
+            ```
+
+            **Windows (x64)**:
+            ```bash
+            curl -L -o dragonglass.tar.gz https://github.com/gillisandrew/dragonglass-poc/releases/download/${{ steps.version.outputs.version }}/dragonglass-${{ steps.version.outputs.version }}-windows-amd64.exe.tar.gz
+            tar -xzf dragonglass.tar.gz
+            # Move dragonglass-windows-amd64.exe and dragonglass-build-windows-amd64.exe to desired location
+            ```
+
+            ### Usage
+
+            **Dragonglass Plugin Manager**:
+            ```bash
+            # Install a plugin with verification
+            dragonglass install plugin-name
+
+            # List available plugins
+            dragonglass list
+
+            # Verify installed plugins
+            dragonglass verify
+            ```
+
+            **Dragonglass Build Tool**:
+            ```bash
+            # Build plugin from remote repository
+            dragonglass-build https://github.com/user/repo.git --ref main
+
+            # Build plugin from local directory
+            dragonglass-build ./plugin-directory
             ```
 
             ### Verification
