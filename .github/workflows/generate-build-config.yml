@@ -37,8 +37,8 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v5
 
-      - name: Install JSON Schema CLI
-        uses: sourcemeta/jsonschema@v11.8.3
+      - name: Set up jsonschema
+        uses: ./.github/actions/setup-jsonschema
 
       - name: Fetch commit hash for refname
         id: fetch-commit

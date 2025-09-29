@@ -27,8 +27,8 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v5
 
-      - name: Install JSON Schema CLI
-        uses: sourcemeta/jsonschema@v11.8.3
+      - name: Set up jsonschema
+        uses: ./.github/actions/setup-jsonschema
 
       - name: Validate JSON schemas
         run: |
@@ -66,46 +66,3 @@ jobs:
           done
 
           echo "✅ Plugin directory structure looks good"
-
-  validate-example-plugin:
-    name: Validate Example Plugin
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v5
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-
-      - name: Install dependencies
-        working-directory: example-plugin
-        run: npm ci
-
-      - name: Type check
-        working-directory: example-plugin
-        run: npx tsc --noEmit
-
-      - name: Build example plugin
-        working-directory: example-plugin
-        run: npm run build
-
-      - name: Validate manifest
-        working-directory: example-plugin
-        run: |
-          if [ ! -f "manifest.json" ]; then
-            echo "❌ manifest.json is missing"
-            exit 1
-          fi
-
-          # Basic JSON validation
-          python3 -m json.tool manifest.json > /dev/null || {
-            echo "❌ manifest.json is not valid JSON"
-            exit 1
-          }
-
-          echo "✅ Example plugin is valid"

@@ -88,9 +88,18 @@ jobs:
 
           go build -ldflags="${LDFLAGS}" -o dragonglass-build-${{ matrix.suffix }} ./cmd/dragonglass-build
 
-      - name: Create tarball
+      - name: Create archive (MacOS/Linux)
+        if: matrix.goos != 'windows'
         run: |
           tar -czf dragonglass-${{ steps.version.outputs.version }}-${{ matrix.suffix }}.tar.gz \
+            dragonglass-${{ matrix.suffix }} \
+            dragonglass-build-${{ matrix.suffix }} \
+            README.md \
+            LICENSE
+      - name: Create archive (Windows)
+        if: matrix.goos == 'windows'
+        run: |
+          zip -r dragonglass-${{ steps.version.outputs.version }}-${{ matrix.suffix }}.zip \
             dragonglass-${{ matrix.suffix }} \
             dragonglass-build-${{ matrix.suffix }} \
             README.md \
@@ -101,7 +110,7 @@ jobs:
         with:
           name: dragonglass-${{ steps.version.outputs.version }}-${{ matrix.suffix }}
           path: |
-            dragonglass-${{ steps.version.outputs.version }}-${{ matrix.suffix }}.tar.gz
+            dragonglass-${{ steps.version.outputs.version }}-${{ matrix.suffix }}.*
             dragonglass-${{ matrix.suffix }}
             dragonglass-build-${{ matrix.suffix }}
 
@@ -133,12 +142,13 @@ jobs:
         run: |
           mkdir -p release-assets
           find artifacts -name "*.tar.gz" -exec cp {} release-assets/ \;
+          find artifacts -name "*.zip" -exec cp {} release-assets/ \;
           ls -la release-assets/
 
       - name: Generate checksums
         run: |
           cd release-assets
-          sha256sum *.tar.gz > checksums.txt
+          sha256sum *.tar.gz *.zip > checksums.txt
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
@@ -150,6 +160,7 @@ jobs:
           generate_release_notes: true
           files: |
             release-assets/*.tar.gz
+            release-assets/*.zip
             release-assets/checksums.txt
           body: |
             ## Dragonglass ${{ steps.version.outputs.version }}
@@ -199,9 +210,17 @@ jobs:
             ```
 
             **Windows (x64)**:
+            ```powershell
+            # Using PowerShell
+            Invoke-WebRequest -Uri "https://github.com/gillisandrew/dragonglass-poc/releases/download/${{ steps.version.outputs.version }}/dragonglass-${{ steps.version.outputs.version }}-windows-amd64.exe.zip" -OutFile "dragonglass.zip"
+            Expand-Archive -Path "dragonglass.zip" -DestinationPath "."
+            # Move dragonglass-windows-amd64.exe and dragonglass-build-windows-amd64.exe to desired location
+            ```
+
             ```bash
-            curl -L -o dragonglass.tar.gz https://github.com/gillisandrew/dragonglass-poc/releases/download/${{ steps.version.outputs.version }}/dragonglass-${{ steps.version.outputs.version }}-windows-amd64.exe.tar.gz
-            tar -xzf dragonglass.tar.gz
+            # Using curl (if available)
+            curl -L -o dragonglass.zip https://github.com/gillisandrew/dragonglass-poc/releases/download/${{ steps.version.outputs.version }}/dragonglass-${{ steps.version.outputs.version }}-windows-amd64.exe.zip
+            unzip dragonglass.zip
             # Move dragonglass-windows-amd64.exe and dragonglass-build-windows-amd64.exe to desired location
             ```
 
